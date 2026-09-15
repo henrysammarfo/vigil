@@ -10,33 +10,185 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as BrandRouteImport } from './routes/brand'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as JournalRouteImport } from './routes/journal'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as DashboardJournalRouteImport } from './routes/dashboard.journal'
+import { Route as DashboardReplayRouteImport } from './routes/dashboard.replay'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
+import { Route as DashboardSignalsRouteImport } from './routes/dashboard.signals'
+import { Route as DashboardTradesRouteImport } from './routes/dashboard.trades'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BrandRoute = BrandRouteImport.update({
+  id: '/brand',
+  path: '/brand',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardJournalRoute = DashboardJournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardReplayRoute = DashboardReplayRouteImport.update({
+  id: '/replay',
+  path: '/replay',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSignalsRoute = DashboardSignalsRouteImport.update({
+  id: '/signals',
+  path: '/signals',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardTradesRoute = DashboardTradesRouteImport.update({
+  id: '/trades',
+  path: '/trades',
+  getParentRoute: () => DashboardRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/brand': typeof BrandRoute
+  '/contact': typeof ContactRoute
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/how-it-works': typeof HowItWorksRoute
+  '/journal': typeof JournalRoute
+  '/dashboard/journal': typeof DashboardJournalRoute
+  '/dashboard/replay': typeof DashboardReplayRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/signals': typeof DashboardSignalsRoute
+  '/dashboard/trades': typeof DashboardTradesRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/brand': typeof BrandRoute
+  '/contact': typeof ContactRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/journal': typeof JournalRoute
+  '/dashboard/journal': typeof DashboardJournalRoute
+  '/dashboard/replay': typeof DashboardReplayRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/signals': typeof DashboardSignalsRoute
+  '/dashboard/trades': typeof DashboardTradesRoute
+  '/dashboard': typeof DashboardIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/brand': typeof BrandRoute
+  '/contact': typeof ContactRoute
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/how-it-works': typeof HowItWorksRoute
+  '/journal': typeof JournalRoute
+  '/dashboard/journal': typeof DashboardJournalRoute
+  '/dashboard/replay': typeof DashboardReplayRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/signals': typeof DashboardSignalsRoute
+  '/dashboard/trades': typeof DashboardTradesRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/brand'
+    | '/contact'
+    | '/dashboard'
+    | '/how-it-works'
+    | '/journal'
+    | '/dashboard/journal'
+    | '/dashboard/replay'
+    | '/dashboard/settings'
+    | '/dashboard/signals'
+    | '/dashboard/trades'
+    | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/about'
+    | '/brand'
+    | '/contact'
+    | '/how-it-works'
+    | '/journal'
+    | '/dashboard/journal'
+    | '/dashboard/replay'
+    | '/dashboard/settings'
+    | '/dashboard/signals'
+    | '/dashboard/trades'
+    | '/dashboard'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/brand'
+    | '/contact'
+    | '/dashboard'
+    | '/how-it-works'
+    | '/journal'
+    | '/dashboard/journal'
+    | '/dashboard/replay'
+    | '/dashboard/settings'
+    | '/dashboard/signals'
+    | '/dashboard/trades'
+    | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  BrandRoute: typeof BrandRoute
+  ContactRoute: typeof ContactRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
+  HowItWorksRoute: typeof HowItWorksRoute
+  JournalRoute: typeof JournalRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +200,123 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/brand': {
+      id: '/brand'
+      path: '/brand'
+      fullPath: '/brand'
+      preLoaderRoute: typeof BrandRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/journal': {
+      id: '/dashboard/journal'
+      path: '/journal'
+      fullPath: '/dashboard/journal'
+      preLoaderRoute: typeof DashboardJournalRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/replay': {
+      id: '/dashboard/replay'
+      path: '/replay'
+      fullPath: '/dashboard/replay'
+      preLoaderRoute: typeof DashboardReplayRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/signals': {
+      id: '/dashboard/signals'
+      path: '/signals'
+      fullPath: '/dashboard/signals'
+      preLoaderRoute: typeof DashboardSignalsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/trades': {
+      id: '/dashboard/trades'
+      path: '/trades'
+      fullPath: '/dashboard/trades'
+      preLoaderRoute: typeof DashboardTradesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
   }
 }
 
+interface DashboardRouteChildren {
+  DashboardJournalRoute: typeof DashboardJournalRoute
+  DashboardReplayRoute: typeof DashboardReplayRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardSignalsRoute: typeof DashboardSignalsRoute
+  DashboardTradesRoute: typeof DashboardTradesRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardJournalRoute: DashboardJournalRoute,
+  DashboardReplayRoute: DashboardReplayRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardSignalsRoute: DashboardSignalsRoute,
+  DashboardTradesRoute: DashboardTradesRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  BrandRoute: BrandRoute,
+  ContactRoute: ContactRoute,
+  DashboardRoute: DashboardRouteWithChildren,
+  HowItWorksRoute: HowItWorksRoute,
+  JournalRoute: JournalRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
