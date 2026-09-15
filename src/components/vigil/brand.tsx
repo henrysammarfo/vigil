@@ -11,7 +11,7 @@ export function BrandMark({ inverse=false, compact=false }: { inverse?: boolean;
   </Link>;
 }
 
-const links = [{to:"/",label:"Home"},{to:"/how-it-works",label:"System"},{to:"/journal",label:"Journal"},{to:"/about",label:"About"} ] as const;
+const links = [{to:"/",label:"Home"},{to:"/how-it-works",label:"System"},{to:"/journal",label:"Journal"},{to:"/about",label:"About"},{to:"/brand",label:"Brand"} ] as const;
 export function SiteHeader({ overlay=false }: { overlay?: boolean }) {
  const [open,setOpen]=useState(false);
  return <header className="relative z-30 flex items-center gap-8 px-5 pt-6 md:px-12 md:pt-9">
