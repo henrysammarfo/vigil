@@ -16,6 +16,11 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as DashboardJournalRouteImport } from './routes/dashboard.journal'
+import { Route as DashboardReplayRouteImport } from './routes/dashboard.replay'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
+import { Route as DashboardSignalsRouteImport } from './routes/dashboard.signals'
+import { Route as DashboardTradesRouteImport } from './routes/dashboard.trades'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +57,31 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardJournalRoute = DashboardJournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardReplayRoute = DashboardReplayRouteImport.update({
+  id: '/replay',
+  path: '/replay',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSignalsRoute = DashboardSignalsRouteImport.update({
+  id: '/signals',
+  path: '/signals',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardTradesRoute = DashboardTradesRouteImport.update({
+  id: '/trades',
+  path: '/trades',
+  getParentRoute: () => DashboardRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -60,6 +90,11 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteWithChildren
   '/how-it-works': typeof HowItWorksRoute
   '/journal': typeof JournalRoute
+  '/dashboard/journal': typeof DashboardJournalRoute
+  '/dashboard/replay': typeof DashboardReplayRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/signals': typeof DashboardSignalsRoute
+  '/dashboard/trades': typeof DashboardTradesRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
@@ -68,6 +103,11 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/how-it-works': typeof HowItWorksRoute
   '/journal': typeof JournalRoute
+  '/dashboard/journal': typeof DashboardJournalRoute
+  '/dashboard/replay': typeof DashboardReplayRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/signals': typeof DashboardSignalsRoute
+  '/dashboard/trades': typeof DashboardTradesRoute
   '/dashboard': typeof DashboardIndexRoute
 }
 export interface FileRoutesById {
@@ -78,6 +118,11 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteWithChildren
   '/how-it-works': typeof HowItWorksRoute
   '/journal': typeof JournalRoute
+  '/dashboard/journal': typeof DashboardJournalRoute
+  '/dashboard/replay': typeof DashboardReplayRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/signals': typeof DashboardSignalsRoute
+  '/dashboard/trades': typeof DashboardTradesRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
@@ -89,9 +134,25 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/how-it-works'
     | '/journal'
+    | '/dashboard/journal'
+    | '/dashboard/replay'
+    | '/dashboard/settings'
+    | '/dashboard/signals'
+    | '/dashboard/trades'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/contact' | '/how-it-works' | '/journal' | '/dashboard'
+  to:
+    | '/'
+    | '/about'
+    | '/contact'
+    | '/how-it-works'
+    | '/journal'
+    | '/dashboard/journal'
+    | '/dashboard/replay'
+    | '/dashboard/settings'
+    | '/dashboard/signals'
+    | '/dashboard/trades'
+    | '/dashboard'
   id:
     | '__root__'
     | '/'
@@ -100,6 +161,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/how-it-works'
     | '/journal'
+    | '/dashboard/journal'
+    | '/dashboard/replay'
+    | '/dashboard/settings'
+    | '/dashboard/signals'
+    | '/dashboard/trades'
     | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
@@ -163,14 +229,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/journal': {
+      id: '/dashboard/journal'
+      path: '/journal'
+      fullPath: '/dashboard/journal'
+      preLoaderRoute: typeof DashboardJournalRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/replay': {
+      id: '/dashboard/replay'
+      path: '/replay'
+      fullPath: '/dashboard/replay'
+      preLoaderRoute: typeof DashboardReplayRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/signals': {
+      id: '/dashboard/signals'
+      path: '/signals'
+      fullPath: '/dashboard/signals'
+      preLoaderRoute: typeof DashboardSignalsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/trades': {
+      id: '/dashboard/trades'
+      path: '/trades'
+      fullPath: '/dashboard/trades'
+      preLoaderRoute: typeof DashboardTradesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
   }
 }
 
 interface DashboardRouteChildren {
+  DashboardJournalRoute: typeof DashboardJournalRoute
+  DashboardReplayRoute: typeof DashboardReplayRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardSignalsRoute: typeof DashboardSignalsRoute
+  DashboardTradesRoute: typeof DashboardTradesRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardJournalRoute: DashboardJournalRoute,
+  DashboardReplayRoute: DashboardReplayRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardSignalsRoute: DashboardSignalsRoute,
+  DashboardTradesRoute: DashboardTradesRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 
