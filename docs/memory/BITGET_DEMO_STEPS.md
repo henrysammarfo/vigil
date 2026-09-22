@@ -9,7 +9,12 @@ Official: [Bitget Demo Trading REST](https://www.bitget.com/api-doc/classic/demo
 3. Personal Center → **API Key Management** → Create
 4. On **Select API key type**, choose **System-generated API key** (HMAC)
    - Do **not** pick User-generated / RSA — VIGIL signs with HMAC-SHA256 (`createHmac`)
-5. Enable trade permissions needed for paper orders
+5. On **Create new API key**, set:
+   - **Note:** `VIGIL S2 paper`
+   - **Passphrase:** 8–32 alphanumeric (save this — it becomes `BITGET_PASSPHRASE`)
+   - **Permissions:** **Read-write** (not Read-only)
+   - **Permission type:** enable **Unified account → Manage** and **Trade** (orders/positions). Leave P2P and Withdraw off.
+   - **Bind IP:** leave blank for now (optional later)
 6. Copy **API Key**, **Secret**, **Passphrase** once (secret shown once)
 
 KYC is required for Demo API per Bitget docs.
