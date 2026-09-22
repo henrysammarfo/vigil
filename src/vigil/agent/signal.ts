@@ -54,7 +54,7 @@ async function fetchBitgetTickerMove(
   ticker: string,
 ): Promise<{ movePct: number; rangePct: number; raw: Record<string, unknown> } | null> {
   const symbol = `${ticker}USDT`;
-  const base = process.env.BITGET_BASE_URL?.trim() || "https://api.bitget.com";
+  const base = process.env["BITGET_BASE_URL"]?.trim() || "https://api.bitget.com";
   try {
     const url = `${base}/api/v2/mix/market/ticker?productType=USDT-FUTURES&symbol=${encodeURIComponent(symbol)}`;
     const res = await fetch(url, { headers: { Accept: "application/json", locale: "en-US" } });
@@ -66,11 +66,11 @@ async function fetchBitgetTickerMove(
     if (!data) return null;
 
     const changeCandidates = [
-      data.change24h,
-      data.changeUtc24h,
-      data.changeUtc,
-      data.priceChangePercent,
-      data.chgUtc,
+      data["change24h"],
+      data["changeUtc24h"],
+      data["changeUtc"],
+      data["priceChangePercent"],
+      data["chgUtc"],
     ].map((v) => Number(v));
     const finite = changeCandidates.filter((n) => Number.isFinite(n));
     if (!finite.length) return null;
@@ -79,9 +79,9 @@ async function fetchBitgetTickerMove(
     const asPct = (n: number) => (Math.abs(n) <= 1 ? n * 100 : n);
     const movePct = finite.map(asPct).sort((a, b) => Math.abs(b) - Math.abs(a))[0]!;
 
-    const high = Number(data.high24h);
-    const low = Number(data.low24h);
-    const open = Number(data.open24h ?? data.openUtc ?? data.lastPr);
+    const high = Number(data["high24h"]);
+    const low = Number(data["low24h"]);
+    const open = Number(data["open24h"] ?? data["openUtc"] ?? data["lastPr"]);
     let rangePct = 0;
     if (Number.isFinite(high) && Number.isFinite(low) && Number.isFinite(open) && open > 0) {
       rangePct = ((high - low) / open) * 100;
