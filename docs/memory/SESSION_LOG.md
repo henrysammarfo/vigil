@@ -1,5 +1,11 @@
 # Session Log
 
+## 2026-09-22 — Bitget Demo paper fill live
+
+- Demo API key (created inside Demo mode) auth OK with `paptrading:1`.
+- Equity after deposit ~4.1M USDT demo.
+- Paper order: `NVDAUSDT` buy market → `00000` / orderId `1486262952946679809`.
+
 ## 2026-09-22 — Tor clears AgentRouter WAF; strip template traces; Bitget Demo steps
 
 - **Tor:** `scripts/tor-start.sh` + `AGENTROUTER_USE_TOR=1` → AgentRouter JSON (not captcha). Live: `deepseek-v4-flash` HTTP 200 via node:https + SocksProxyAgent. Key valid.

@@ -16,7 +16,7 @@
 
 - [x] Live closed-window gate
 - [x] Live news ingest (TinyFish Search OK; Tavily quota exceeded)
-- [ ] Live Bitget paper executor — code ready; **needs Demo API keys** (see BITGET_DEMO_STEPS)
+- [x] Live Bitget paper executor — Demo key + UTA place-order verified (`NVDAUSDT` accepted)
 - [x] Append-only why-log with hash
 - [x] Dashboard reads from DB/API only
 - [x] Multitenant cookie sessions (no localStorage auth)
