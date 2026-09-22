@@ -20,14 +20,19 @@ export async function assessRtokenSignal(item: NewsItem): Promise<SignalAssessme
   const live = await fetchBitgetTickerMove(ticker);
 
   if (live) {
-    const score = scoreFromMove(live.movePct, item.headline);
+    const score = scoreFromMove(live.movePct, item.headline, live.rangePct);
     return {
       ticker,
       movePct: formatMove(live.movePct),
       score,
       state: stateFromScore(score),
       metricLabel: "observed",
-      details: { quote: live.raw, source: "bitget-public-ticker" },
+      details: {
+        quote: live.raw,
+        source: "bitget-public-ticker",
+        rangePct: live.rangePct,
+        change24hPct: live.movePct,
+      },
     };
   }
 
@@ -47,7 +52,7 @@ export async function assessRtokenSignal(item: NewsItem): Promise<SignalAssessme
 
 async function fetchBitgetTickerMove(
   ticker: string,
-): Promise<{ movePct: number; raw: Record<string, unknown> } | null> {
+): Promise<{ movePct: number; rangePct: number; raw: Record<string, unknown> } | null> {
   const symbol = `${ticker}USDT`;
   const base = process.env.BITGET_BASE_URL?.trim() || "https://api.bitget.com";
   try {
@@ -59,29 +64,53 @@ async function fetchBitgetTickerMove(
     };
     const data = Array.isArray(json.data) ? json.data[0] : json.data;
     if (!data) return null;
-    const change = Number(
-      data.change24h ?? data.changeUtc ?? data.priceChangePercent ?? data.chgUtc ?? 0,
-    );
-    if (!Number.isFinite(change)) return null;
-    // Bitget may return fraction or percent; normalize to percent points.
-    const movePct = Math.abs(change) <= 1 ? change * 100 : change;
-    return { movePct, raw: data };
+
+    const changeCandidates = [
+      data.change24h,
+      data.changeUtc24h,
+      data.changeUtc,
+      data.priceChangePercent,
+      data.chgUtc,
+    ].map((v) => Number(v));
+    const finite = changeCandidates.filter((n) => Number.isFinite(n));
+    if (!finite.length) return null;
+
+    // Bitget returns fractions (0.021 = 2.1%) or percent; normalize to percent points.
+    const asPct = (n: number) => (Math.abs(n) <= 1 ? n * 100 : n);
+    const movePct = finite.map(asPct).sort((a, b) => Math.abs(b) - Math.abs(a))[0]!;
+
+    const high = Number(data.high24h);
+    const low = Number(data.low24h);
+    const open = Number(data.open24h ?? data.openUtc ?? data.lastPr);
+    let rangePct = 0;
+    if (Number.isFinite(high) && Number.isFinite(low) && Number.isFinite(open) && open > 0) {
+      rangePct = ((high - low) / open) * 100;
+    }
+
+    return { movePct, rangePct, raw: data };
   } catch {
     return null;
   }
 }
 
-function scoreFromMove(movePct: number, headline: string): number {
-  const magnitude = Math.min(100, Math.round(Math.abs(movePct) * 20));
-  const keywordBoost = /export|earnings|guidance|fed|rate|inflation|geopolitic|sanction/i.test(
+/** Exported for unit tests — maps observed move + headline catalyst → 0–100 score. */
+export function scoreFromMove(movePct: number, headline: string, rangePct = 0): number {
+  // Mega-cap overnight: ~1.3% → Watch, ~2% → Review territory, ~2.7% → Qualified.
+  const magnitude = Math.min(100, Math.round(Math.abs(movePct) * 30));
+  const rangeBoost = Math.min(20, Math.round(Math.abs(rangePct) * 4));
+  const keywordBoost = CATALYST_RE.test(headline) ? 18 : 0;
+  const namedBoost = /\b(NVDA|TSLA|AAPL|MSFT|AMZN|META|GOOGL|Nvidia|Tesla|Apple)\b/i.test(
     headline,
   )
-    ? 15
+    ? 8
     : 0;
-  return Math.max(0, Math.min(100, magnitude + keywordBoost));
+  return Math.max(0, Math.min(100, magnitude + Math.max(rangeBoost, keywordBoost) + namedBoost));
 }
 
-function stateFromScore(score: number): SignalAssessment["state"] {
+const CATALYST_RE =
+  /export|earnings|guidance|fed|rate|inflation|geopolitic|sanction|upgrade|downgrade|lawsuit|recall|chip|ai |gpu|autonom|delivery|revenue|beat|miss|outlook|buyback|split|sec |probe|ban|tariff|war|ceasefire|ipo|acquisition|merger/i;
+
+export function stateFromScore(score: number): SignalAssessment["state"] {
   if (score >= 80) return "Qualified";
   if (score >= 60) return "Review";
   if (score >= 40) return "Watch";

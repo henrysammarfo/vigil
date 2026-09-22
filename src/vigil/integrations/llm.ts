@@ -53,7 +53,11 @@ export async function scoreEventWithLlm(input: {
 }): Promise<LlmCallResult> {
   const system = `You are VIGIL (FENN-disciplined). Closed-market paper-only Bitget rToken policy.
 Return ONLY compact JSON: {"action":"PAPER_BUY"|"PAPER_SELL"|"NO_TRADE"|"WATCH","confidence":0-100,"rationale":"...","metricLabel":"estimated"}.
-Rules: prefer NO_TRADE; paper only if allowlisted=${input.allowlisted} AND move is meaningful; no advice; never invent fills.`;
+Rules:
+- Refuse by default for non-allowlisted names (allowlisted=${input.allowlisted}).
+- When allowlisted=true AND absolute move is roughly ≥1%, choose PAPER_BUY or PAPER_SELL with confidence ≥ ${input.minConfidence} when the headline is a plausible catalyst; otherwise NO_TRADE or WATCH.
+- Direction: positive move → prefer PAPER_BUY; negative → prefer PAPER_SELL; ambiguous → NO_TRADE.
+- No advice; never invent fills; paper-only.`;
 
   const user = JSON.stringify({
     headline: input.headline,
@@ -408,7 +412,7 @@ async function callOpenAiCompatible(args: {
         { role: "user", content: args.user },
       ],
     }),
-    viaTor: args.viaTor,
+    ...(args.viaTor ? { viaTor: true as const } : {}),
   });
 
   const text = await res.text();
@@ -476,7 +480,7 @@ async function callAnthropicCompatible(args: {
       system: args.system,
       messages: [{ role: "user", content: args.user }],
     }),
-    viaTor: args.viaTor,
+    ...(args.viaTor ? { viaTor: true as const } : {}),
   });
 
   const text = await res.text();

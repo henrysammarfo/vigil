@@ -164,9 +164,11 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
         continue;
       }
 
-      if (assessment.state === "Rejected" || assessment.score < settings.minConfidence) {
+      // Pre-LLM gate: only hard-reject Rejected. Watch/Review/Qualified may reach policy.
+      // minConfidence applies after the LLM decides whether to paper.
+      if (assessment.state === "Rejected") {
         const decisionId = newId("dec");
-        const rationale = `Signal ${assessment.state} score=${assessment.score} below min=${settings.minConfidence}`;
+        const rationale = `Signal Rejected score=${assessment.score} (need Watch+) · move=${assessment.movePct}`;
         await db.insert(decisions).values({
           id: decisionId,
           tenantId,

@@ -1,5 +1,13 @@
 # Session Log
 
+## 2026-09-22 — Full e2e cycle papered (submission path)
+
+- Fixed signal gate: only `Rejected` blocks pre-LLM; `minConfidence` applies after LLM paper decision.
+- Improved `scoreFromMove` (×30 scale + range/catalyst/named boosts) so quiet mega-cap after-hours moves can reach Watch+.
+- Live `scripts/e2e-full.ts`: TinyFish → FENN allowlist → Tor `deepseek-v4-flash` → Bitget Demo paper.
+- Result: `papered=1` `NVDAUSDT` buy accepted · exchangeOrderId `1486264474501758976` · export `/opt/cursor/artifacts/vigil-paper-log-1790078990545.json`.
+- Thesis intact: 3 why-cards · PAPER_BUY + FENN one-side NO + WATCH.
+
 ## 2026-09-22 — Bitget Demo paper fill live
 
 - Demo API key (created inside Demo mode) auth OK with `paptrading:1`.

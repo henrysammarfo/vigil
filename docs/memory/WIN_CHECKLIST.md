@@ -9,7 +9,8 @@
 - [ ] Track = Agentic Trading · Sub-theme = Event-Driven Agent — drafted
 - [ ] University Name = ATU (if entering university pool) — drafted
 - [ ] Apply for Demo Day = Yes (recommended) — drafted
-- [ ] Paper trading log covering competition period — needs Bitget Demo key + live runs  
+- [x] Paper trading log covering competition period — live Demo fill + export  
+      → artifact `vigil-paper-log-1790078990545.json` · orderId `1486264474501758976`  
       → steps: [`docs/memory/BITGET_DEMO_STEPS.md`](./BITGET_DEMO_STEPS.md)
 
 ## Product blockers
@@ -28,9 +29,8 @@
 
 ## Next ship order
 
-1. **Henry:** Bitget Demo keys → paper log ([BITGET_DEMO_STEPS](./BITGET_DEMO_STEPS.md))
-2. **Henry:** Cloudflare / Vercel prod URL + secrets (`AGENTROUTER_USE_TOR` or clean egress)
-3. **Henry:** X post + Google Form (`docs/submission/S2_SUBMISSION.md`)
+1. **Henry:** Cloudflare / Vercel prod URL + secrets (`AGENTROUTER_USE_TOR` or clean egress)
+2. **Henry:** X post + Google Form (`docs/submission/S2_SUBMISSION.md`) — paper log ready
 
 ## Pitch order
 
