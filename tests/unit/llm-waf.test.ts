@@ -8,8 +8,7 @@ import {
 
 describe("AgentRouter WAF helpers", () => {
   it("detects Aliyun captcha HTML as WAF", () => {
-    const html =
-      '<!doctype html><meta name="aliyun_waf_aa" content="x"><title></title>';
+    const html = '<!doctype html><meta name="aliyun_waf_aa" content="x"><title></title>';
     expect(looksLikeWaf(200, html, "text/html; charset=utf-8")).toBe(true);
   });
 

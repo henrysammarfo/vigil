@@ -1,5 +1,11 @@
 # Session Log
 
+## 2026-09-22 — Next: FENN smoke + win checklist truth
+
+- Lint autofixed (prettier). Build + 17 tests green.
+- `bun run smoke:fenn` live: TinyFish → 3 NO_TRADE why-cards, empty allowlist, no LLM/Bitget.
+- WIN_CHECKLIST updated: product spine mostly done; Henry-blocked = Bitget Demo keys, prod URL, X post, Google Form.
+
 ## 2026-09-22 — AgentRouter WAF bypass + TinyFish Fetch docs correction
 
 - **WAF bypass (docs, not surrender):** vendored `scripts/agentrouter-proxy` (sync `anthropic` TLS fingerprint); `llm.ts` path `agentrouter-proxy` via `AGENTROUTER_PROXY_URL`; OpenAI path ships QwenCode + `x-stainless-*`; defaults prefer `co.agentrouter.org` portal bases; relay retries co + main with stainless headers.

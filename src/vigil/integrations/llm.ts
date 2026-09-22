@@ -16,12 +16,7 @@ export const llmDecisionSchema = z.object({
 export type LlmDecision = z.infer<typeof llmDecisionSchema>;
 
 export type LlmProvider =
-  | "relay"
-  | "agentrouter-proxy"
-  | "agentrouter"
-  | "agentrouter-anthropic"
-  | "venice"
-  | "dashscope";
+  "relay" | "agentrouter-proxy" | "agentrouter" | "agentrouter-anthropic" | "venice" | "dashscope";
 
 export type LlmCallResult = {
   provider: LlmProvider;
@@ -89,9 +84,7 @@ Rules: prefer NO_TRADE; paper only if allowlisted=${input.allowlisted} AND move 
           path: relay,
           url: relay.replace(/\/$/, "") + "/chat/completions",
           apiKey:
-            env("VIGIL_LLM_RELAY_KEY")?.trim() ||
-            env("AGENTROUTER_API_KEY")?.trim() ||
-            "relay",
+            env("VIGIL_LLM_RELAY_KEY")?.trim() || env("AGENTROUTER_API_KEY")?.trim() || "relay",
           model: env("VIGIL_LLM_MODEL")?.trim() || "gpt-4o-mini",
           system,
           user,
@@ -120,9 +113,7 @@ Rules: prefer NO_TRADE; paper only if allowlisted=${input.allowlisted} AND move 
           url: `${proxy}/v1/messages`,
           apiKey: key,
           model:
-            env("VIGIL_LLM_MODEL")?.trim() ||
-            env("ANTHROPIC_MODEL")?.trim() ||
-            "claude-opus-4-6",
+            env("VIGIL_LLM_MODEL")?.trim() || env("ANTHROPIC_MODEL")?.trim() || "claude-opus-4-6",
           system,
           user,
         });
@@ -196,8 +187,7 @@ Rules: prefer NO_TRADE; paper only if allowlisted=${input.allowlisted} AND move 
 
       if (name === "dashscope") {
         // Alibaba Qwen OpenAI-compatible (optional Bitget Qwen credits / DashScope)
-        const key =
-          env("DASHSCOPE_API_KEY")?.trim() || env("QWEN_API_KEY")?.trim();
+        const key = env("DASHSCOPE_API_KEY")?.trim() || env("QWEN_API_KEY")?.trim();
         if (!key) continue;
         return await callOpenAiCompatible({
           provider: "dashscope",
@@ -226,13 +216,11 @@ Rules: prefer NO_TRADE; paper only if allowlisted=${input.allowlisted} AND move 
 
 /** OpenAI-compatible bases (must include /v1). Prefer portal co host, then legacy. */
 export function agentrouterOpenAiBases(): string[] {
-  const primary = (
-    env("AGENTROUTER_BASE_URL")?.trim() || "https://co.agentrouter.org/v1"
-  ).replace(/\/$/, "");
-  const alts = [
-    "https://co.agentrouter.org/v1",
-    "https://agentrouter.org/v1",
-  ];
+  const primary = (env("AGENTROUTER_BASE_URL")?.trim() || "https://co.agentrouter.org/v1").replace(
+    /\/$/,
+    "",
+  );
+  const alts = ["https://co.agentrouter.org/v1", "https://agentrouter.org/v1"];
   return uniqueUrls([primary, ...alts]);
 }
 
@@ -263,10 +251,10 @@ function uniqueUrls(urls: string[]): string[] {
  */
 export function agentrouterStainlessHeaders(apiKey: string): Record<string, string> {
   const runtime =
-    typeof process !== "undefined" && process.versions?.['bun']
-      ? { name: "bun", version: `bun/${process.versions['bun']}` }
-      : typeof process !== "undefined" && process.versions?.['node']
-        ? { name: "node", version: `node/${process.versions['node']}` }
+    typeof process !== "undefined" && process.versions?.["bun"]
+      ? { name: "bun", version: `bun/${process.versions["bun"]}` }
+      : typeof process !== "undefined" && process.versions?.["node"]
+        ? { name: "node", version: `node/${process.versions["node"]}` }
         : { name: "node", version: "node/20.0.0" };
 
   return {
@@ -362,9 +350,7 @@ async function callAnthropicCompatible(args: {
     "anthropic-version": "2023-06-01",
     "Content-Type": "application/json",
     Accept: "application/json",
-    "User-Agent": args.stainless
-      ? "claude-cli/1.0.0 (external, cli)"
-      : "claude-cli/1.0.0",
+    "User-Agent": args.stainless ? "claude-cli/1.0.0 (external, cli)" : "claude-cli/1.0.0",
   };
   if (args.stainless) {
     Object.assign(headers, {
@@ -374,8 +360,8 @@ async function callAnthropicCompatible(args: {
       "x-stainless-arch": "x64",
       "x-stainless-runtime": "node",
       "x-stainless-runtime-version":
-        typeof process !== "undefined" && process.versions?.['node']
-          ? `node/${process.versions['node']}`
+        typeof process !== "undefined" && process.versions?.["node"]
+          ? `node/${process.versions["node"]}`
           : "node/20.0.0",
       "x-stainless-retry-count": "0",
     });

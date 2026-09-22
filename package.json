@@ -15,7 +15,8 @@
     "smoke:live": "bun scripts/smoke-live.ts",
     "worker": "bun worker/index.ts",
     "typecheck": "tsc --noEmit",
-    "agentrouter:proxy": "bash scripts/agentrouter-proxy/start.sh"
+    "agentrouter:proxy": "bash scripts/agentrouter-proxy/start.sh",
+    "smoke:fenn": "bun scripts/smoke-fenn.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"

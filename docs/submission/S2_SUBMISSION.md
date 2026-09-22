@@ -10,7 +10,7 @@
 - Apply for K3 Token Subsidy: optional
 
 ### Role of the LLM
-VIGIL uses an OpenAI-compatible LLM gateway (AgentRouter primary, Venice alternate) to score closed-market events into PAPER_BUY / PAPER_SELL / NO_TRADE / WATCH with an explicit confidence and rationale. The declared model is stored on every decision and sealed into the append-only why-card. The LLM does not place live orders; Bitget Agent Hub Demo / `--paper-trading` executes paper only.
+VIGIL scores closed-market events with a multi-path LLM gateway: AgentRouter primary (OpenAI-compatible `/v1/chat/completions` with allowlisted stainless/QwenCode headers, Anthropic Messages, optional local sync-Anthropic proxy at `AGENTROUTER_PROXY_URL`), Venice and DashScope/Qwen failover. Declared provider+model are sealed on every decision/why-card. FENN empty-allowlist refuses with deterministic `fenn-gate` NO cards and never calls the LLM. The LLM does not place live orders; Bitget Agent Hub Demo / `--paper-trading` executes paper only.
 
 ### Project description (six parts)
 
