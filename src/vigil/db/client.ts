@@ -77,6 +77,9 @@ CREATE TABLE IF NOT EXISTS tenant_settings (
   max_position_usd integer NOT NULL DEFAULT 5000,
   min_confidence integer NOT NULL DEFAULT 70,
   llm_declared text NOT NULL DEFAULT 'undeclared',
+  fenn_mode boolean NOT NULL DEFAULT true,
+  allowlist jsonb NOT NULL DEFAULT '[]',
+  fixed_paper_size integer NOT NULL DEFAULT 1,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS api_credential_refs (
@@ -183,6 +186,18 @@ async function ensureSchema(db: VigilDb): Promise<void> {
       .map((s) => s.trim())
       .filter(Boolean)) {
       await db.execute(sql.raw(stmt));
+    }
+    // Idempotent column adds for existing installs
+    for (const alter of [
+      "ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS fenn_mode boolean NOT NULL DEFAULT true",
+      "ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS allowlist jsonb NOT NULL DEFAULT '[]'",
+      "ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS fixed_paper_size integer NOT NULL DEFAULT 1",
+    ]) {
+      try {
+        await db.execute(sql.raw(alter));
+      } catch {
+        // pglite / older engines may not support IF NOT EXISTS on ADD COLUMN
+      }
     }
   })();
   return migratePromise;

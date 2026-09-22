@@ -150,6 +150,9 @@ export const updateSettingsFn = createServerFn({ method: "POST" })
         maxPositionUsd: z.number().int().min(100).max(1_000_000),
         minConfidence: z.number().int().min(0).max(100),
         llmDeclared: z.string().min(1).max(200),
+        fennMode: z.boolean(),
+        allowlist: z.array(z.string().min(1).max(16)).max(50),
+        fixedPaperSize: z.number().int().min(1).max(10),
       })
       .parse(data),
   )
@@ -157,6 +160,9 @@ export const updateSettingsFn = createServerFn({ method: "POST" })
     try {
       const ctx = await requireSession(cookieHeader());
       const db = await getDb();
+      const allowlist = [
+        ...new Set(data.allowlist.map((t) => t.trim().toUpperCase()).filter(Boolean)),
+      ];
       await db
         .insert(tenantSettings)
         .values({
@@ -167,6 +173,9 @@ export const updateSettingsFn = createServerFn({ method: "POST" })
           maxPositionUsd: data.maxPositionUsd,
           minConfidence: data.minConfidence,
           llmDeclared: data.llmDeclared,
+          fennMode: data.fennMode,
+          allowlist,
+          fixedPaperSize: data.fixedPaperSize,
           updatedAt: new Date(),
         })
         .onConflictDoUpdate({
@@ -178,6 +187,9 @@ export const updateSettingsFn = createServerFn({ method: "POST" })
             maxPositionUsd: data.maxPositionUsd,
             minConfidence: data.minConfidence,
             llmDeclared: data.llmDeclared,
+            fennMode: data.fennMode,
+            allowlist,
+            fixedPaperSize: data.fixedPaperSize,
             updatedAt: new Date(),
           },
         });

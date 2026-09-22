@@ -82,6 +82,11 @@ export const tenantSettings = pgTable("tenant_settings", {
   maxPositionUsd: integer("max_position_usd").notNull().default(5000),
   minConfidence: integer("min_confidence").notNull().default(70),
   llmDeclared: text("llm_declared").notNull().default("undeclared"),
+  /** FENN refuse-by-default. Empty allowlist means headline → NO. */
+  fennMode: boolean("fenn_mode").notNull().default(true),
+  allowlist: jsonb("allowlist").$type<string[]>().notNull().default([]),
+  /** Fixed small paper size — never spray remaining balance. */
+  fixedPaperSize: integer("fixed_paper_size").notNull().default(1),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

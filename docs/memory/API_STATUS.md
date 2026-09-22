@@ -10,9 +10,10 @@
 | TinyFish Fetch | `TINYFISH_API_KEY` | **OK** schema | Host: `https://api.fetch.tinyfish.ai` · body `{ "urls": [...] }` |
 | TinyFish Agent | `TINYFISH_API_KEY` | **0 credits** | Host: `https://agent.tinyfish.ai/v1/automation/run` · optional |
 | Tavily Search | `TAVILY_API_KEY` | **Quota exceeded** | Needs top-up; do not fake news if down |
-| AgentRouter LLM | `AGENTROUTER_API_KEY` | **WAF captcha from this cloud VM** (re-checked 2026-09-22) | Base `https://agentrouter.org/v1` · key may work from your laptop / Cloud Run egress outside Aliyun WAF · not proven live here |
-| Venice LLM | `VENICE_API_KEY` | Models endpoint reachable (no key needed to list) | Use as alternate until AgentRouter egress works |
-| Qwen (Bitget build credits) | n/a (Telegram after KYC form) | **Optional** | Not required to submit; first 300 KYC-passed teams may get ~30U credits — separate Google Form |
+| AgentRouter LLM | `AGENTROUTER_API_KEY` | **WAF from Cursor cloud VM**; reachable via other egress | TinyFish Fetch got **HTTP 401** (not WAF) → API alive. Workarounds: (1) Lovable/CF production Nitro egress (2) `VIGIL_LLM_RELAY_URL` using `worker/llm-relay.ts` (3) Anthropic `/v1/messages` path (4) Venice / DashScope Qwen failover |
+| Venice LLM | `VENICE_API_KEY` | Models OK; chat needs key | Primary fallback when AgentRouter WAF'd |
+| DashScope / Qwen | `DASHSCOPE_API_KEY` or `QWEN_API_KEY` | Optional | OpenAI-compatible; use if Bitget Qwen credits issued |
+| LLM relay | `VIGIL_LLM_RELAY_URL` | Optional | Deploy `worker/llm-relay.ts` on clean egress |
 | Bitget Agent Hub | `BITGET_API_KEY` · `BITGET_API_SECRET` · `BITGET_PASSPHRASE` · `BITGET_PAPER=true` | **Not configured** | Demo key required for paper orders |
 | Clerk | `CLERK_SECRET_KEY` · `VITE_CLERK_PUBLISHABLE_KEY` | Optional | If unset, app uses secure cookie session auth |
 | Database | `DATABASE_URL` | Required | Postgres (Cloud SQL in prod) |

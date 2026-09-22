@@ -30,10 +30,25 @@ export const Route = createFileRoute("/how-it-works")({
 const stages = [
   ["01", Newspaper, "Event intake", "A macro or company headline enters the watch queue."],
   ["02", Timer, "Window gate", "VIGIL confirms US regular trading hours are closed."],
-  ["03", Zap, "Signal check", "Bitget signal skills measure relevance and movement."],
-  ["04", BrainCircuit, "Policy", "Rules score confidence, risk and evidence quality."],
-  ["05", ShieldCheck, "Paper order", "Agent Hub receives a simulated order—never live capital."],
-  ["06", CircleCheck, "Why-log", "The inputs, decision and result become append-only evidence."],
+  [
+    "03",
+    Zap,
+    "FENN allowlist",
+    "Allowlist starts empty. Headline alone is a NO why-card — never a fill.",
+  ],
+  [
+    "04",
+    BrainCircuit,
+    "Signal + policy",
+    "Named allowlisted rToken must actually move; LLM may still refuse.",
+  ],
+  [
+    "05",
+    ShieldCheck,
+    "Paper order",
+    "Agent Hub Demo receives one fixed-size paper side — never both.",
+  ],
+  ["06", CircleCheck, "Why-log", "Nos and yeses seal append-only. The journal is the product."],
 ] as const;
 function How() {
   return (

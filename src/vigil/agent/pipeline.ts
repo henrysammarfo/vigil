@@ -4,9 +4,10 @@ import { agentRuns, decisions, events, paperOrders, signals, tenantSettings } fr
 import { placeBitgetPaperOrder, assertPaperOnlySettings } from "../integrations/bitget-paper";
 import { scoreEventWithLlm } from "../integrations/llm";
 import { ingestClosedMarketNews } from "../integrations/news";
-import { VigilError, isVigilError } from "../security/errors";
+import { isVigilError } from "../security/errors";
 import { newId } from "../security/crypto";
 import { evaluateClosedWindow } from "./closed-window";
+import { evaluateFennGates, fixedPaperQuantity, parseAllowlist } from "./fenn";
 import { sealWhyCard } from "./journal";
 import { assessRtokenSignal } from "./signal";
 
@@ -35,9 +36,16 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
     maxPositionUsd: 5000,
     minConfidence: 70,
     llmDeclared: "undeclared",
+    fennMode: true,
+    allowlist: [] as string[],
+    fixedPaperSize: 1,
   };
 
   assertPaperOnlySettings(settings.paperOnly !== false);
+
+  const fennMode = settings.fennMode !== false;
+  const allowlist = parseAllowlist(settings.allowlist ?? []);
+  const fixedSize = fixedPaperQuantity(settings.fixedPaperSize ?? 1);
 
   const window = evaluateClosedWindow(new Date(), {
     weekendWatch: settings.weekendWatch,
@@ -61,7 +69,10 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
     const news = await ingestClosedMarketNews();
     let processed = 0;
     let papered = 0;
+    let refused = 0;
     const artifacts: unknown[] = [];
+    const paperedTickers = new Set<string>();
+    const sidesByTicker = new Map<string, "buy" | "sell">();
 
     for (const item of news) {
       const eventId = newId("evt");
@@ -91,9 +102,119 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
         details: assessment.details,
       });
 
-      if (assessment.state === "Rejected" || assessment.score < settings.minConfidence) {
+      const fenn = evaluateFennGates({
+        fennMode,
+        allowlist,
+        ticker: assessment.ticker,
+        paperedTickers,
+        sidesByTicker,
+      });
+
+      // FENN: headline alone → NO why-card (journal is the product)
+      if (!fenn.allowPaper) {
+        const decisionId = newId("dec");
+        await db.insert(decisions).values({
+          id: decisionId,
+          tenantId,
+          signalId,
+          action: "NO_TRADE",
+          confidence: 100,
+          llmProvider: "fenn-gate",
+          llmModel: "deterministic",
+          rationale: fenn.reason,
+          metricLabel: "observed",
+        });
+        const sealed = await sealWhyCard(tenantId, decisionId, {
+          eventId,
+          signalId,
+          decisionId,
+          paperOrderId: null,
+          headline: item.headline,
+          ticker: assessment.ticker,
+          action: "NO_TRADE",
+          confidence: 100,
+          windowState: window.state,
+          llmProvider: "fenn-gate",
+          llmModel: "deterministic",
+          rationale: fenn.reason,
+          metricLabels: {
+            event: item.metricLabel,
+            signal: assessment.metricLabel,
+            decision: "observed",
+          },
+          gates: [
+            "event-received",
+            "closed-window-verified",
+            "fenn-allowlist",
+            fenn.gate,
+            "no-paper-order",
+            "why-card-sealed",
+          ],
+        });
         processed += 1;
-        artifacts.push({ eventId, signalId, skipped: true, reason: assessment.state });
+        refused += 1;
+        artifacts.push({
+          eventId,
+          signalId,
+          decisionId,
+          refused: true,
+          gate: fenn.gate,
+          why: sealed,
+        });
+        continue;
+      }
+
+      if (assessment.state === "Rejected" || assessment.score < settings.minConfidence) {
+        const decisionId = newId("dec");
+        const rationale = `Signal ${assessment.state} score=${assessment.score} below min=${settings.minConfidence}`;
+        await db.insert(decisions).values({
+          id: decisionId,
+          tenantId,
+          signalId,
+          action: "NO_TRADE",
+          confidence: assessment.score,
+          llmProvider: "signal-gate",
+          llmModel: "deterministic",
+          rationale,
+          metricLabel: assessment.metricLabel,
+        });
+        const sealed = await sealWhyCard(tenantId, decisionId, {
+          eventId,
+          signalId,
+          decisionId,
+          paperOrderId: null,
+          headline: item.headline,
+          ticker: assessment.ticker,
+          action: "NO_TRADE",
+          confidence: assessment.score,
+          windowState: window.state,
+          llmProvider: "signal-gate",
+          llmModel: "deterministic",
+          rationale,
+          metricLabels: {
+            event: item.metricLabel,
+            signal: assessment.metricLabel,
+            decision: assessment.metricLabel,
+          },
+          gates: [
+            "event-received",
+            "closed-window-verified",
+            "allowlist-pass",
+            "signal-rejected",
+            "no-paper-order",
+            "why-card-sealed",
+          ],
+        });
+        processed += 1;
+        refused += 1;
+        artifacts.push({
+          eventId,
+          signalId,
+          decisionId,
+          refused: true,
+          gate: "signal",
+          why: sealed,
+        });
         continue;
       }
 
@@ -103,32 +224,53 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
         movePct: assessment.movePct,
         windowState: window.state,
         minConfidence: settings.minConfidence,
+        allowlisted: true,
       });
+
+      let action = llm.decision.action;
+      let rationale = llm.decision.rationale;
+
+      // One-side enforcement after LLM proposes a direction
+      if (action === "PAPER_BUY" || action === "PAPER_SELL") {
+        const side = action === "PAPER_BUY" ? "buy" : "sell";
+        const sideGate = evaluateFennGates({
+          fennMode,
+          allowlist,
+          ticker: assessment.ticker,
+          paperedTickers,
+          sidesByTicker,
+          proposedSide: side,
+        });
+        if (!sideGate.allowPaper) {
+          action = "NO_TRADE";
+          rationale = `${sideGate.reason} · LLM had proposed ${llm.decision.action}`;
+        }
+      }
 
       const decisionId = newId("dec");
       await db.insert(decisions).values({
         id: decisionId,
         tenantId,
         signalId,
-        action: llm.decision.action,
+        action,
         confidence: llm.decision.confidence,
         llmProvider: llm.provider,
         llmModel: llm.model,
-        rationale: llm.decision.rationale,
+        rationale,
         metricLabel: llm.decision.metricLabel,
       });
 
       let paperOrderId: string | null = null;
       if (
-        (llm.decision.action === "PAPER_BUY" || llm.decision.action === "PAPER_SELL") &&
+        (action === "PAPER_BUY" || action === "PAPER_SELL") &&
         llm.decision.confidence >= settings.minConfidence
       ) {
-        const side = llm.decision.action === "PAPER_BUY" ? "buy" : "sell";
-        const size = String(Math.max(1, Math.floor(settings.maxPositionUsd / 1000)));
+        const side = action === "PAPER_BUY" ? "buy" : "sell";
+        // Fixed small size — never "use the rest of the balance"
         const order = await placeBitgetPaperOrder({
           symbol: `${assessment.ticker}USDT`,
           side,
-          size,
+          size: fixedSize,
         });
         paperOrderId = newId("ord");
         await db.insert(paperOrders).values({
@@ -137,13 +279,17 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
           decisionId,
           symbol: `${assessment.ticker}USDT`,
           side,
-          quantity: size,
+          quantity: fixedSize,
           status: order.status,
           exchangeOrderId: order.exchangeOrderId,
           rawResponse: order.raw,
           metricLabel: order.metricLabel,
         });
         papered += 1;
+        paperedTickers.add(assessment.ticker.toUpperCase());
+        sidesByTicker.set(assessment.ticker.toUpperCase(), side);
+      } else {
+        refused += 1;
       }
 
       const sealed = await sealWhyCard(tenantId, decisionId, {
@@ -153,12 +299,12 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
         paperOrderId,
         headline: item.headline,
         ticker: assessment.ticker,
-        action: llm.decision.action,
+        action,
         confidence: llm.decision.confidence,
         windowState: window.state,
         llmProvider: llm.provider,
         llmModel: llm.model,
-        rationale: llm.decision.rationale,
+        rationale,
         metricLabels: {
           event: item.metricLabel,
           signal: assessment.metricLabel,
@@ -167,6 +313,7 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
         gates: [
           "event-received",
           "closed-window-verified",
+          "allowlist-pass",
           "signal-movement-checked",
           "policy-scored",
           paperOrderId ? "paper-order-accepted" : "no-paper-order",
@@ -175,16 +322,28 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
       });
 
       processed += 1;
-      artifacts.push({ eventId, signalId, decisionId, paperOrderId, why: sealed });
+      artifacts.push({
+        eventId,
+        signalId,
+        decisionId,
+        paperOrderId,
+        llmPath: llm.path,
+        why: sealed,
+      });
     }
 
     const summary = {
       processed,
       papered,
+      refused,
       newsCount: news.length,
+      allowlist,
+      fennMode,
+      fixedPaperSize: fixedSize,
       window,
       artifacts,
-      honesty: "paper-only · metrics labeled · not financial advice",
+      honesty: "paper-only · fenn refuse-by-default · metrics labeled · not financial advice",
+      thesis: "Ten headlines, mostly NO cards, one named allowlisted paper when earned",
     };
     await finishRun(runId, "completed", summary);
     return { runId, status: "completed", windowState: window.state, summary };

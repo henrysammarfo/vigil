@@ -77,7 +77,13 @@ export async function registerUser(input: z.infer<typeof credentialsSchema>): Pr
   await db.insert(tenants).values({ id: tenantId, slug, name: tenantName });
   await db.insert(users).values({ id: userId, email, passwordHash, displayName });
   await db.insert(memberships).values({ id: membershipId, tenantId, userId, role: "owner" });
-  await db.insert(tenantSettings).values({ tenantId, paperOnly: true });
+  await db.insert(tenantSettings).values({
+    tenantId,
+    paperOnly: true,
+    fennMode: true,
+    allowlist: [],
+    fixedPaperSize: 1,
+  });
 
   return createSession(userId, tenantId, email, displayName, "owner");
 }
