@@ -18,20 +18,21 @@ function Replay() {
   const q = useDashboard();
   const card = q.data?.ok ? q.data.whyCards[0] : null;
   const body = (card?.body ?? {}) as { gates?: string[]; ticker?: string; action?: string };
-  const steps = useMemo(
-    () =>
+  const steps = useMemo(() => {
+    const raw =
       body.gates?.length
         ? body.gates
         : [
-            "Event received",
-            "Closed window verified",
-            "Signal movement confirmed",
-            "Policy scored",
-            "Paper order / no-trade",
-            "Why-card sealed",
-          ],
-    [body.gates],
-  );
+            "event-received",
+            "closed-window-verified",
+            "signal-movement-checked",
+            "policy-scored",
+            "paper-order-accepted",
+            "why-card-sealed",
+          ];
+    return raw.map(humanGate);
+  }, [body.gates]);
+
   const [at, setAt] = useState(0);
   const [playing, setPlaying] = useState(false);
 
@@ -52,13 +53,13 @@ function Replay() {
     >
       <Panel title="Timeline" meta={card ? `seq #${card.seq}` : "no live card"}>
         <div className="py-8">
-          <div className="relative mx-auto flex max-w-4xl justify-between before:absolute before:left-4 before:right-4 before:top-4 before:h-px before:bg-border">
+          <div className="relative mx-auto flex max-w-5xl justify-between gap-2 before:absolute before:left-4 before:right-4 before:top-4 before:h-px before:bg-border">
             {steps.map((s, i) => (
               <button
                 key={`${s}-${i}`}
                 type="button"
                 onClick={() => setAt(i)}
-                className="relative z-10 flex w-24 flex-col items-center gap-3"
+                className="relative z-10 flex w-28 flex-col items-center gap-3"
               >
                 <span
                   className={`flex h-8 w-8 items-center justify-center text-xs font-bold ${
@@ -69,15 +70,33 @@ function Replay() {
                 >
                   {i + 1}
                 </span>
-                <span className="text-center text-[10px] uppercase tracking-[0.08em]">{s}</span>
+                <span className="text-center text-[10px] uppercase tracking-[0.06em] leading-snug">
+                  {s}
+                </span>
               </button>
             ))}
           </div>
-          <div className="mt-10 flex justify-center gap-3">
-            <Button variant="outline" onClick={() => setAt(0)}>
+          <p className="mx-auto mt-8 max-w-xl text-center text-sm text-muted-foreground">
+            {steps[at] ?? "—"}
+            {playing ? " · playing" : ""}
+          </p>
+          <div className="mt-8 flex justify-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPlaying(false);
+                setAt(0);
+              }}
+            >
               Reset
             </Button>
-            <Button variant="signal" onClick={() => setPlaying(true)}>
+            <Button
+              variant="signal"
+              onClick={() => {
+                if (at >= steps.length - 1) setAt(0);
+                setPlaying(true);
+              }}
+            >
               Play
             </Button>
           </div>
@@ -85,4 +104,11 @@ function Replay() {
       </Panel>
     </DashboardShell>
   );
+}
+
+function humanGate(g: string) {
+  return g
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
 }

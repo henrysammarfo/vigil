@@ -20,6 +20,7 @@ import {
   signals,
   tenantSettings,
   tenants,
+  whyCards,
 } from "../vigil/db/schema";
 import { isVigilError } from "../vigil/security/errors";
 import { newId, rateLimit } from "../vigil/security/crypto";
@@ -245,14 +246,25 @@ export const exportPaperLogFn = createServerFn({ method: "GET" }).handler(async 
 export const publicJournalFn = createServerFn({ method: "GET" }).handler(async () => {
   try {
     const db = await getDb();
-    const slug = process.env.VIGIL_DEFAULT_TENANT_SLUG?.trim();
-    if (!slug) {
+    const slug = process.env["VIGIL_DEFAULT_TENANT_SLUG"]?.trim();
+    let publicTenantId: string | null = null;
+    if (slug) {
+      const tenantRows = await db.select().from(tenants).where(eq(tenants.slug, slug)).limit(1);
+      publicTenantId = tenantRows[0]?.id ?? null;
+    }
+    if (!publicTenantId) {
+      // Demo-friendly fallback: newest sealed why-card's tenant (no env required).
+      const latest = await db
+        .select({ tenantId: whyCards.tenantId })
+        .from(whyCards)
+        .orderBy(desc(whyCards.sealedAt))
+        .limit(1);
+      publicTenantId = latest[0]?.tenantId ?? null;
+    }
+    if (!publicTenantId) {
       return { ok: true as const, rows: [] as Array<Record<string, unknown>> };
     }
-    const tenantRows = await db.select().from(tenants).where(eq(tenants.slug, slug)).limit(1);
-    const publicTenant = tenantRows[0];
-    if (!publicTenant) return { ok: true as const, rows: [] as Array<Record<string, unknown>> };
-    const cards = await listWhyCards(publicTenant.id, 30);
+    const cards = await listWhyCards(publicTenantId, 30);
     return {
       ok: true as const,
       rows: cards.map((c) => {

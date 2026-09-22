@@ -49,6 +49,7 @@ const links = [
   { to: "/journal", label: "Journal" },
   { to: "/about", label: "About" },
   { to: "/brand", label: "Brand" },
+  { to: "/contact", label: "Contact" },
 ] as const;
 export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -85,21 +86,29 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
         {open ? <X /> : <Menu />}
       </Button>
       {open && (
-        <nav className="absolute left-5 right-5 top-20 flex flex-col gap-5 border border-border bg-background p-6 shadow-xl md:hidden">
-          {links.map((x) => (
-            <Link
-              key={x.to}
-              to={x.to}
-              onClick={() => setOpen(false)}
-              className="font-bold uppercase"
-            >
-              {x.label}
+        <>
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="fixed inset-0 z-40 bg-ink/40 md:hidden"
+            onClick={() => setOpen(false)}
+          />
+          <nav className="absolute left-5 right-5 top-20 z-50 flex flex-col gap-5 border border-border bg-background p-6 shadow-xl md:hidden">
+            {links.map((x) => (
+              <Link
+                key={x.to}
+                to={x.to}
+                onClick={() => setOpen(false)}
+                className="font-bold uppercase"
+              >
+                {x.label}
+              </Link>
+            ))}
+            <Link to="/dashboard" className="font-bold uppercase text-primary">
+              Launch app
             </Link>
-          ))}
-          <Link to="/dashboard" className="font-bold uppercase text-primary">
-            Launch app
-          </Link>
-        </nav>
+          </nav>
+        </>
       )}
     </header>
   );

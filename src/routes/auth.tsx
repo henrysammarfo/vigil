@@ -58,8 +58,8 @@ function AuthPage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface px-5 py-16 text-foreground">
-      <div className="mx-auto max-w-md border border-border bg-background p-8">
+    <main className="flex min-h-screen items-center justify-center bg-surface px-5 py-12 text-foreground">
+      <div className="w-full max-w-md border border-border bg-background p-8">
         <BrandMark />
         <h1 className="mt-8 text-3xl font-bold uppercase">
           {mode === "login" ? "Sign in" : "Create workspace"}

@@ -30,6 +30,7 @@ function Index() {
   return (
     <main className="overflow-hidden bg-background">
       <section className="relative min-h-[100svh] overflow-hidden">
+        <div className="hero-fallback" aria-hidden="true" />
         <video
           ref={videoRef}
           className="hero-video"

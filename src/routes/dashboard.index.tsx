@@ -39,7 +39,17 @@ function Overview() {
         <Button
           variant="signal"
           size="sm"
+          disabled={!window?.allowed || Boolean(runMsg?.startsWith("Running"))}
+          title={
+            window && !window.allowed
+              ? `${window.reason} — Run agent only after hours / weekend`
+              : "Run closed-window agent cycle"
+          }
           onClick={async () => {
+            if (!window?.allowed) {
+              setRunMsg(`Skipped: ${window?.reason ?? "closed window not active"}`);
+              return;
+            }
             setRunMsg("Running…");
             const res = await runAgentFn();
             if (res.ok) {
@@ -50,7 +60,7 @@ function Overview() {
             }
           }}
         >
-          Run agent
+          {window && !window.allowed ? "Standing down" : "Run agent"}
         </Button>
       }
     >
@@ -75,7 +85,7 @@ function Overview() {
           value={String(orders.length).padStart(2, "0")}
           label="Paper decisions"
         />
-        <Stat icon={Sparkles} value={String(top?.score ?? 0)} label="Top confidence" />
+        <Stat icon={Sparkles} value={String(top?.score ?? 0)} label="Top signal score" />
       </div>
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.45fr_.75fr]">
         <Panel title="Event watch" meta="Observed / live">

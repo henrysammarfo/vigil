@@ -14,7 +14,7 @@ import {
   ShoppingCart,
   X,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { BrandMark } from "./brand";
 import { useWindowStatus } from "./dashboard-data";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,11 @@ const nav = [
   ["/dashboard/settings", Settings, "Settings"],
 ] as const;
 
+function navActive(path: string, to: string) {
+  if (to === "/dashboard") return path === "/dashboard" || path === "/dashboard/";
+  return path === to || path.startsWith(`${to}/`);
+}
+
 export function DashboardShell({
   title,
   kicker,
@@ -42,13 +47,28 @@ export function DashboardShell({
   actions?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const path = useRouterState({ select: (s) => s.location.pathname });
   const windowQ = useWindowStatus();
   const windowState = windowQ.data?.ok ? windowQ.data.window.state : "…";
   const vigilActive = windowQ.data?.ok ? windowQ.data.window.allowed : false;
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2800);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   return (
     <div className="min-h-screen bg-surface text-foreground md:grid md:grid-cols-[238px_1fr]">
+      {open && (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          className="fixed inset-0 z-40 bg-ink/50 md:hidden"
+          onClick={() => setOpen(false)}
+        />
+      )}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-[238px] flex-col bg-ink p-5 text-ink-foreground transition-transform md:translate-x-0",
@@ -80,7 +100,7 @@ export function DashboardShell({
               onClick={() => setOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-3 py-3 text-xs font-bold uppercase tracking-[0.06em] text-ink-muted hover:bg-ink-border hover:text-ink-foreground",
-                path === to && "bg-ink-border text-primary",
+                navActive(path, to) && "bg-ink-border text-primary",
               )}
             >
               <I className="h-4 w-4" />
@@ -102,15 +122,16 @@ export function DashboardShell({
             variant="ghost"
             size="icon"
             className="mr-3 md:hidden"
+            aria-label="Open navigation"
             onClick={() => setOpen(true)}
           >
             <Menu />
           </Button>
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="min-w-0">
+            <p className="truncate text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               {kicker}
             </p>
-            <h1 className="mt-1 text-lg font-bold uppercase">{title}</h1>
+            <h1 className="mt-1 truncate text-lg font-bold uppercase">{title}</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
             {actions}
@@ -118,10 +139,8 @@ export function DashboardShell({
               variant="outline"
               size="icon"
               aria-label="Notifications"
-              title="No new alerts"
-              onClick={() => {
-                window.alert("No new alerts · paper vigil is quiet");
-              }}
+              title="Alerts"
+              onClick={() => setToast("No new alerts · paper vigil is quiet")}
             >
               <Bell />
             </Button>
@@ -149,6 +168,14 @@ export function DashboardShell({
             </Button>
           </div>
         </header>
+        {toast && (
+          <div
+            role="status"
+            className="mx-5 mt-4 border border-primary-edge bg-primary/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.08em] text-foreground md:mx-8"
+          >
+            {toast}
+          </div>
+        )}
         <main className="p-5 md:p-8">{children}</main>
       </div>
     </div>

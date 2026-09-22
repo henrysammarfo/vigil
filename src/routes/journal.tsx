@@ -62,10 +62,19 @@ function Journal() {
             </article>
           ))}
           {!rows.length && (
-            <p className="py-12 text-sm text-muted-foreground">
-              No public journal entries yet. Set VIGIL_DEFAULT_TENANT_SLUG to a tenant that has
-              sealed why-cards.
-            </p>
+            <div className="border border-dashed border-border bg-surface/60 px-6 py-14 text-center">
+              <p className="text-sm font-bold uppercase tracking-[0.08em]">Journal standing by</p>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+                Sealed why-cards appear here after a closed-window agent run. Sign in, set an
+                allowlist, and run the vigil after hours or on weekends.
+              </p>
+              <a
+                href="/auth"
+                className="mt-6 inline-flex text-xs font-bold uppercase tracking-[0.12em] text-primary hover:underline"
+              >
+                Enter workspace →
+              </a>
+            </div>
           )}
         </div>
       </section>
