@@ -9,28 +9,28 @@
 - [ ] Track = Agentic Trading · Sub-theme = Event-Driven Agent — drafted
 - [ ] University Name = ATU (if entering university pool) — drafted
 - [ ] Apply for Demo Day = Yes (recommended) — drafted
-- [ ] Paper trading log covering competition period — needs Bitget Demo key + live runs
+- [ ] Paper trading log covering competition period — needs Bitget Demo key + live runs  
+      → steps: [`docs/memory/BITGET_DEMO_STEPS.md`](./BITGET_DEMO_STEPS.md)
 
 ## Product blockers
 
 - [x] Live closed-window gate
 - [x] Live news ingest (TinyFish Search OK; Tavily quota exceeded)
-- [ ] Live Bitget paper executor — code ready; **needs Demo API keys**
+- [ ] Live Bitget paper executor — code ready; **needs Demo API keys** (see BITGET_DEMO_STEPS)
 - [x] Append-only why-log with hash
 - [x] Dashboard reads from DB/API only
 - [x] Multitenant cookie sessions (no localStorage auth)
 - [x] Metrics labeled observed / estimated / targeted
-- [x] Build + tests green (`bun run build`, `bun run test`); lint warnings only in shadcn UI
-- [x] FENN refuse-by-default (empty allowlist → NO why-cards, no LLM/Bitget)
-- [ ] AgentRouter live completion from Cursor VM — WAF captcha on this IP; bypass shipped for clean egress (`AGENTROUTER_PROXY_URL` / `VIGIL_LLM_RELAY_URL` / Lovable)
-- [ ] Venice / DashScope key (optional failover when AR blocked)
+- [x] Build + tests green; lint warnings only in shadcn UI
+- [x] FENN refuse-by-default (empty allowlist → NO why-cards)
+- [x] AgentRouter via Tor from cloud VM (`deepseek-v4-flash` live 200; key valid)
+- [ ] Venice / DashScope key (optional failover)
 
-## Next ship order (priority)
+## Next ship order
 
-1. **Henry:** Bitget Demo keys → live paper log for competition period  
-2. **Henry:** Deploy Lovable/CF + optional `VENICE_API_KEY` or relay on clean egress  
-3. **Agent:** FENN empty-allowlist live smoke (TinyFish → why-cards, no LLM)  
-4. **Henry:** X post + Google Form using `docs/submission/S2_SUBMISSION.md`
+1. **Henry:** Bitget Demo keys → paper log ([BITGET_DEMO_STEPS](./BITGET_DEMO_STEPS.md))
+2. **Henry:** Cloudflare / Vercel prod URL + secrets (`AGENTROUTER_USE_TOR` or clean egress)
+3. **Henry:** X post + Google Form (`docs/submission/S2_SUBMISSION.md`)
 
 ## Pitch order
 

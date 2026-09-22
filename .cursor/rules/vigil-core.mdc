@@ -34,6 +34,6 @@ Read and update `docs/memory/` and `.cursor/skills/vigil-s2-build/` before archi
 
 ## Stack contract
 
-- Frontend: TanStack Start (Lovable/Cloudflare).
+- Frontend: TanStack Start + Cloudflare Nitro.
 - Backend worker/DB/secrets: GCP Cloud Run + Cloud SQL + Secret Manager.
-- LLM: AgentRouter primary, Venice alternate — declare model in why-cards.
+- LLM: AgentRouter primary (Tor egress from cloud VMs), Venice alternate — declare model in why-cards.

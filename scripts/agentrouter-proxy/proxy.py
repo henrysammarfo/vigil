@@ -211,8 +211,8 @@ async def messages(request: Request):
                         "type": "waf_blocked",
                         "message": (
                             "Upstream returned Aliyun WAF captcha HTML. "
-                            "Run this proxy on clean egress (laptop / CF relay / Lovable Nitro), "
-                            "or set VIGIL_LLM_RELAY_URL."
+                            "Start Tor (scripts/tor-start.sh) and set AGENTROUTER_USE_TOR=1, "
+                            "or run this proxy on clean egress / VIGIL_LLM_RELAY_URL."
                         ),
                         "target": TARGET,
                     }

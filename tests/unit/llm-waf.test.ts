@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   agentrouterAnthropicBases,
+  agentrouterModels,
   agentrouterOpenAiBases,
   agentrouterStainlessHeaders,
   looksLikeWaf,
+  shouldUseTor,
 } from "../../src/vigil/integrations/llm";
 
 describe("AgentRouter WAF helpers", () => {
@@ -31,10 +33,10 @@ describe("AgentRouter WAF helpers", () => {
     expect(h.Authorization).toBe("Bearer sk-test");
   });
 
-  it("OpenAI bases include /v1 and prefer co portal host", () => {
+  it("OpenAI bases include /v1 and prefer agentrouter.org", () => {
     const bases = agentrouterOpenAiBases();
     expect(bases[0]).toMatch(/\/v1$/);
-    expect(bases.some((b) => b.includes("co.agentrouter.org"))).toBe(true);
+    expect(bases.some((b) => b.includes("agentrouter.org"))).toBe(true);
   });
 
   it("Anthropic bases omit /v1 (SDK appends /v1/messages)", () => {
@@ -42,5 +44,17 @@ describe("AgentRouter WAF helpers", () => {
     for (const b of bases) {
       expect(b.endsWith("/v1")).toBe(false);
     }
+  });
+
+  it("defaults model list includes deepseek-v4-flash", () => {
+    expect(agentrouterModels()[0]).toBe("deepseek-v4-flash");
+  });
+
+  it("enables Tor when AGENTROUTER_USE_TOR=1", () => {
+    const prev = process.env["AGENTROUTER_USE_TOR"];
+    process.env["AGENTROUTER_USE_TOR"] = "1";
+    expect(shouldUseTor()).toBe(true);
+    if (prev === undefined) delete process.env["AGENTROUTER_USE_TOR"];
+    else process.env["AGENTROUTER_USE_TOR"] = prev;
   });
 });

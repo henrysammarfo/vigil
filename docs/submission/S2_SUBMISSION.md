@@ -29,9 +29,9 @@ VIGIL scores closed-market events with a multi-path LLM gateway: AgentRouter pri
 - [ ] Link demo + GitHub
 
 ## Materials link bundle
-- Demo: _(Lovable / Cloudflare production URL)_
+- Demo: _(Cloudflare / production URL)_
 - GitHub: https://github.com/henrysammarfo/vigil
-- Paper log export: Dashboard → Paper trades → Export
+- Paper log export: Dashboard → Paper trades → Export (see `docs/memory/BITGET_DEMO_STEPS.md`)
 - Docs: `docs/memory/VIGIL_BIBLE.md`
 
 ## Deadline

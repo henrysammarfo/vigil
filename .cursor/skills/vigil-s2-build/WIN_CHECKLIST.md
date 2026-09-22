@@ -7,5 +7,5 @@ Mirror of `docs/memory/WIN_CHECKLIST.md` — keep both in sync.
 - Materials: Demo + paper log + X compliance
 - Product: live spine, cookie sessions, append-only journal, FENN refuse-by-default
 - Honesty: paper only, labeled metrics, not unhackable
-- Blocked on Henry: Bitget Demo keys, prod deploy URL, X post, Google Form
-- Agent next: FENN smoke + keep lint/build green; LLM relay on clean egress when possible
+- Blocked on Henry: Bitget Demo keys, prod Cloudflare URL, X post, Google Form
+- AgentRouter: use Tor (`AGENTROUTER_USE_TOR=1`) from cloud VMs

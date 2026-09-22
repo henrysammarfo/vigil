@@ -1,20 +1,13 @@
 /**
  * Optional Cloudflare Worker / Node relay for AgentRouter.
- * Deploy this on clean egress (CF Workers, Vercel, your laptop tunnel),
- * then set VIGIL_LLM_RELAY_URL=https://YOUR_RELAY/v1
+ * Deploy on clean egress, then set VIGIL_LLM_RELAY_URL=https://YOUR_RELAY/v1
  *
- * Why Cursor cloud VMs fail:
- *   - agentrouter.org → Aliyun captcha HTML (IP/geo) or fingerprint reject
- *   - Bypass on clean egress: QwenCode UA + x-stainless-* headers (OpenAI path)
- *     or Python sync anthropic proxy (scripts/agentrouter-proxy)
- *
- * TinyFish Fetch → agentrouter is NOT proof of a bad key:
- *   Fetch does not forward Authorization (docs.tinyfish.ai/fetch-api).
- *   TinyFish returns HTTP 200 with errors[].status=401 (target_http_error).
+ * Prefer Tor in-process on cloud VMs: AGENTROUTER_USE_TOR=1 (scripts/tor-start.sh).
+ * TinyFish Fetch does not forward Authorization — target 401 ≠ bad TinyFish key.
  */
 const UPSTREAMS = [
-  "https://co.agentrouter.org/v1/chat/completions",
   "https://agentrouter.org/v1/chat/completions",
+  "https://co.agentrouter.org/v1/chat/completions",
 ];
 
 function stainlessHeaders(apiKey: string): Record<string, string> {

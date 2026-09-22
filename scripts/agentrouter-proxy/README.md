@@ -1,24 +1,18 @@
-# AgentRouter WAF bypass proxy
+# agentrouter-proxy
 
-AgentRouter’s Aliyun WAF allowlists **TLS fingerprints**, not just Bearer tokens.
-Node `fetch`, `curl`, and async httpx are rejected (`unauthorized client detected`
-or captcha HTML). The **Python sync `anthropic` SDK** is on the allowlist.
+Local reverse proxy: Node clients → Python sync `anthropic.Anthropic` → AgentRouter.
 
-This proxy (adapted from [agentrouter-opencode-proxy](https://github.com/Goodnessmbakara/agentrouter-opencode-proxy))
-receives Anthropic Messages requests on `127.0.0.1:7187` and re-issues them with
-`anthropic.Anthropic` (sync).
+Aliyun WAF allowlists TLS fingerprints. Sync Anthropic passes fingerprint checks;
+cloud VMs often still get **captcha HTML** by IP — use **Tor** (`scripts/tor-start.sh`
++ `AGENTROUTER_USE_TOR=1`) which clears captcha on `agentrouter.org`.
 
 ```bash
 pip install -r requirements.txt
 export AGENTROUTER_API_KEY=sk-...
+# Optional: route upstream through Tor
+export HTTPS_PROXY=socks5h://127.0.0.1:9050
 bash start.sh
-# then:
 export AGENTROUTER_PROXY_URL=http://127.0.0.1:7187
 ```
 
-VIGIL `llm.ts` prefers `AGENTROUTER_PROXY_URL` when set.
-
-**Note:** Cursor cloud VMs in some regions also receive **captcha HTML** (IP/geo),
-which fingerprint alone cannot clear. Use this proxy on laptop / CF Worker relay /
-Lovable Nitro egress. Official portal host `https://co.agentrouter.org` skips the
-captcha page but may reject keys issued only for `agentrouter.org`.
+VIGIL prefers Tor + stainless headers in-process; this proxy remains for Anthropic Messages clients.
