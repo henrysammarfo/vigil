@@ -381,3 +381,144 @@ export const contactFn = createServerFn({ method: "POST" })
 export const windowStatusFn = createServerFn({ method: "GET" }).handler(async () => {
   return { ok: true as const, window: evaluateClosedWindow() };
 });
+
+export const terminalSnapshotFn = createServerFn({ method: "GET" })
+  .validator((data: unknown) =>
+    z
+      .object({
+        symbol: z.string().min(3).max(24).default("NVDAUSDT"),
+        granularity: z.enum(["1m", "5m", "15m", "30m", "1H", "4H", "1D"]).default("15m"),
+        limit: z.number().int().min(20).max(200).default(96),
+      })
+      .parse(data ?? {}),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await requireSession(cookieHeader());
+      const { fetchBitgetCandles } = await import("../vigil/integrations/bitget-candles");
+      const { fetchBitgetMarkQuote } = await import("../vigil/integrations/bitget-paper");
+      try {
+        await refreshOpenPaperMarks(ctx.tenantId);
+      } catch {
+        // quotes optional
+      }
+      const symbol = data.symbol.toUpperCase();
+      const [candles, quote, orders] = await Promise.all([
+        fetchBitgetCandles({
+          symbol,
+          granularity: data.granularity,
+          limit: data.limit,
+        }),
+        fetchBitgetMarkQuote(symbol),
+        listEnrichedPaperOrders(ctx.tenantId, 80),
+      ]);
+      const symbolOrders = orders.filter((o) => o.symbol.toUpperCase() === symbol);
+      const scoreboard = paperScoreboard(orders);
+      return {
+        ok: true as const,
+        symbol,
+        granularity: data.granularity,
+        candles,
+        quote,
+        orders: symbolOrders,
+        allOrders: orders,
+        scoreboard,
+        fetchedAt: new Date().toISOString(),
+        metricLabel: "observed" as const,
+      };
+    } catch (error) {
+      return toErrorPayload(error);
+    }
+  });
+
+export const runBacktestFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) =>
+    z
+      .object({
+        symbol: z.string().min(3).max(24).default("NVDAUSDT"),
+        granularity: z.enum(["15m", "1H", "4H"]).default("1H"),
+        lookbackBars: z.number().int().min(80).max(800).default(360),
+        minAbsMovePct: z.number().min(0.3).max(8).default(1.0),
+        minScore: z.number().int().min(0).max(100).default(40),
+        holdBars: z.number().int().min(1).max(48).default(8),
+        invalidationPct: z.number().min(0.005).max(0.1).default(0.015),
+        slippageBps: z.number().int().min(0).max(50).default(8),
+        allowlist: z.array(z.string().min(1).max(16)).max(20).optional(),
+        walkForward: z.boolean().default(true),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await requireSession(cookieHeader());
+      if (!rateLimit(`backtest:${ctx.tenantId}`, 6, 60_000)) {
+        return {
+          ok: false as const,
+          code: "RATE_LIMITED",
+          message: "Backtest rate limited",
+          status: 429,
+        };
+      }
+      const { fetchBitgetHistoryCandles } = await import("../vigil/integrations/bitget-candles");
+      const {
+        runBacktest,
+        runWalkForwardBacktest,
+        synthesizeEventsFromCandles,
+      } = await import("../vigil/agent/backtest");
+
+      const symbol = data.symbol.toUpperCase();
+      const ticker = symbol.replace(/USDT$/, "");
+      const candles = await fetchBitgetHistoryCandles({
+        symbol,
+        granularity: data.granularity,
+        lookbackBars: data.lookbackBars,
+      });
+      if (candles.length < 40) {
+        return {
+          ok: false as const,
+          code: "VALIDATION_ERROR",
+          message: `Not enough candles (${candles.length})`,
+          status: 400,
+        };
+      }
+      const events = synthesizeEventsFromCandles({
+        symbol,
+        ticker,
+        candles,
+        minAbsMovePct: data.minAbsMovePct,
+        maxEvents: 48,
+      });
+      const allowlist = (data.allowlist?.length ? data.allowlist : [ticker]).map((t) =>
+        t.toUpperCase(),
+      );
+      const config = {
+        allowlist,
+        fennMode: true,
+        minScore: data.minScore,
+        holdBars: data.holdBars,
+        invalidationPct: data.invalidationPct,
+        slippageBps: data.slippageBps,
+      };
+      const result = data.walkForward
+        ? runWalkForwardBacktest({ symbol, candles, events, config, trainRatio: 0.7 })
+        : runBacktest({ symbol, candles, events, config });
+
+      return {
+        ok: true as const,
+        result: {
+          symbol: result.symbol,
+          candleCount: result.candleCount,
+          eventCount: result.eventCount,
+          metrics: result.metrics,
+          walkForward: result.walkForward ?? null,
+          equityCurve: result.equityCurve,
+          trades: result.trades.slice(0, 60),
+          refusals: result.refusals.slice(0, 40),
+          honesty: result.honesty,
+          config: result.config,
+        },
+      };
+    } catch (error) {
+      return toErrorPayload(error);
+    }
+  });

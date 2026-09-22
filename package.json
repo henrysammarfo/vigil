@@ -18,7 +18,8 @@
     "agentrouter:proxy": "bash scripts/agentrouter-proxy/start.sh",
     "smoke:fenn": "bun ./scripts/smoke-fenn.ts",
     "tor:start": "bash ./scripts/tor-start.sh",
-    "smoke:llm": "bun ./scripts/smoke-llm-tor.ts"
+    "smoke:llm": "bun ./scripts/smoke-llm-tor.ts",
+    "backtest": "bun ./scripts/backtest-run.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"

@@ -22,6 +22,7 @@ import { Route as DashboardJournalRouteImport } from './routes/dashboard.journal
 import { Route as DashboardReplayRouteImport } from './routes/dashboard.replay'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
 import { Route as DashboardSignalsRouteImport } from './routes/dashboard.signals'
+import { Route as DashboardTerminalRouteImport } from './routes/dashboard.terminal'
 import { Route as DashboardTradesRouteImport } from './routes/dashboard.trades'
 
 const IndexRoute = IndexRouteImport.update({
@@ -89,6 +90,11 @@ const DashboardSignalsRoute = DashboardSignalsRouteImport.update({
   path: '/signals',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardTerminalRoute = DashboardTerminalRouteImport.update({
+  id: '/terminal',
+  path: '/terminal',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardTradesRoute = DashboardTradesRouteImport.update({
   id: '/trades',
   path: '/trades',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/replay': typeof DashboardReplayRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/signals': typeof DashboardSignalsRoute
+  '/dashboard/terminal': typeof DashboardTerminalRoute
   '/dashboard/trades': typeof DashboardTradesRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/dashboard/replay': typeof DashboardReplayRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/signals': typeof DashboardSignalsRoute
+  '/dashboard/terminal': typeof DashboardTerminalRoute
   '/dashboard/trades': typeof DashboardTradesRoute
   '/dashboard': typeof DashboardIndexRoute
 }
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/dashboard/replay': typeof DashboardReplayRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/signals': typeof DashboardSignalsRoute
+  '/dashboard/terminal': typeof DashboardTerminalRoute
   '/dashboard/trades': typeof DashboardTradesRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/dashboard/replay'
     | '/dashboard/settings'
     | '/dashboard/signals'
+    | '/dashboard/terminal'
     | '/dashboard/trades'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/dashboard/replay'
     | '/dashboard/settings'
     | '/dashboard/signals'
+    | '/dashboard/terminal'
     | '/dashboard/trades'
     | '/dashboard'
   id:
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/dashboard/replay'
     | '/dashboard/settings'
     | '/dashboard/signals'
+    | '/dashboard/terminal'
     | '/dashboard/trades'
     | '/dashboard/'
   fileRoutesById: FileRoutesById
@@ -297,6 +309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSignalsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/terminal': {
+      id: '/dashboard/terminal'
+      path: '/terminal'
+      fullPath: '/dashboard/terminal'
+      preLoaderRoute: typeof DashboardTerminalRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/trades': {
       id: '/dashboard/trades'
       path: '/trades'
@@ -312,6 +331,7 @@ interface DashboardRouteChildren {
   DashboardReplayRoute: typeof DashboardReplayRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardSignalsRoute: typeof DashboardSignalsRoute
+  DashboardTerminalRoute: typeof DashboardTerminalRoute
   DashboardTradesRoute: typeof DashboardTradesRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
@@ -321,6 +341,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardReplayRoute: DashboardReplayRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardSignalsRoute: DashboardSignalsRoute,
+  DashboardTerminalRoute: DashboardTerminalRoute,
   DashboardTradesRoute: DashboardTradesRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }

@@ -14,7 +14,7 @@
 | Venice LLM | `VENICE_API_KEY` | Optional failover | |
 | DashScope / Qwen | `DASHSCOPE_API_KEY` / `QWEN_API_KEY` | Optional | |
 | LLM relay | `VIGIL_LLM_RELAY_URL` | Optional | `worker/llm-relay.ts` |
-| Bitget Demo | `BITGET_*` + `BITGET_PAPER=true` | **OK** (Demo key + paper fill) | UTA `/api/v3/trade/place-order` + `paptrading:1` · live probe `NVDAUSDT` orderId accepted · equity ~4.1M USDT demo · public mark ticker OK (`NVDAUSDT` ~228.43) · mark-to-exit via opposite market + ledger |
+| Bitget Demo | `BITGET_*` + `BITGET_PAPER=true` | **OK** (Demo key + paper fill) | UTA `/api/v3/trade/place-order` + `paptrading:1` · live probe `NVDAUSDT` orderId accepted · equity ~4.1M USDT demo · public mark ticker OK · mark-to-exit via opposite market + ledger · history-candles backtest OK (NVDA/AAPL/TSLA 1H×360) |
 | Database | `DATABASE_URL` | Required | Postgres / `pglite:memory` local |
 | Session | `SESSION_SECRET` | Required | ≥32 bytes |
 
