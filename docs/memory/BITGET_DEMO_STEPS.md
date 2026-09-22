@@ -9,7 +9,12 @@ Official: [Bitget Demo Trading REST](https://www.bitget.com/api-doc/classic/demo
 > `paptrading: 1` returns `40099 exchange environment is incorrect`.
 
 1. Log in at [bitget.com](https://www.bitget.com)
-2. Switch to **Demo** mode (demo trading / paper) — confirm the ~virtual USDT demo balance
+2. Switch to **Demo** mode — open one of these while logged in:
+   - Direct: https://www.bitget.com/futures/demo  
+   - Or USDT demo: https://www.bitget.com/futures/usdt/demo  
+   - Or nav: top bar **Futures** → **Demo Trading**  
+   ([support guide](https://www.bitget.com/support/articles/12560603790031))  
+   Confirm you see virtual/demo balance (not live funds).
 3. While still in Demo, open Personal Center → **API Key Management** → Create
 4. On **Select API key type**, choose **System-generated API key** (HMAC)
    - Do **not** pick User-generated / RSA — VIGIL signs with HMAC-SHA256 (`createHmac`)
