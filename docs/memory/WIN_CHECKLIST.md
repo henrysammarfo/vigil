@@ -17,7 +17,7 @@
 
 - [x] Live closed-window gate
 - [x] Live news ingest (TinyFish Search OK; Tavily quota exceeded)
-- [x] Live Bitget paper executor — Demo key + UTA place-order verified (`NVDAUSDT` accepted)
+- [x] Live Bitget paper executor — Demo key + UTA place-order verified (`NVDAUSDT` / `AAPLUSDT` accepted)
 - [x] Append-only why-log with hash
 - [x] Dashboard reads from DB/API only
 - [x] Multitenant cookie sessions (no localStorage auth)
@@ -25,6 +25,7 @@
 - [x] Build + tests green; lint warnings only in shadcn UI
 - [x] FENN refuse-by-default (empty allowlist → NO why-cards)
 - [x] AgentRouter via Tor from cloud VM (`deepseek-v4-flash` live 200; key valid)
+- [x] Full agent cycle + UI demo recording for submission
 - [ ] Venice / DashScope key (optional failover)
 
 ## Next ship order

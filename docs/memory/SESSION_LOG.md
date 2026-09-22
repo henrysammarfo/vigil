@@ -7,6 +7,8 @@
 - Live `scripts/e2e-full.ts`: TinyFish → FENN allowlist → Tor `deepseek-v4-flash` → Bitget Demo paper.
 - Result: `papered=1` `NVDAUSDT` buy accepted · exchangeOrderId `1486264474501758976` · export `/opt/cursor/artifacts/vigil-paper-log-1790078990545.json`.
 - Thesis intact: 3 why-cards · PAPER_BUY + FENN one-side NO + WATCH.
+- Settings allowlist no longer wiped by react-query refetch.
+- **UI demo:** Run agent → 4 signals · 2 Demo paper fills (`NVDAUSDT`, `AAPLUSDT`) · recording `vigil-s2-full-agent-demo.mp4`.
 
 ## 2026-09-22 — Bitget Demo paper fill live
 
