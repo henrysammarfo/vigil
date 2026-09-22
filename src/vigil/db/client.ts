@@ -138,7 +138,15 @@ CREATE TABLE IF NOT EXISTS paper_orders (
   exchange_order_id text,
   raw_response jsonb NOT NULL DEFAULT '{}',
   metric_label text NOT NULL DEFAULT 'observed',
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  lifecycle text NOT NULL DEFAULT 'open',
+  mark_price text,
+  unrealized_pnl text,
+  exit_price text,
+  exit_exchange_order_id text,
+  realized_pnl text,
+  closed_at timestamptz,
+  entry_analysis jsonb
 );
 CREATE TABLE IF NOT EXISTS why_cards (
   id text PRIMARY KEY,
@@ -192,6 +200,14 @@ async function ensureSchema(db: VigilDb): Promise<void> {
       "ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS fenn_mode boolean NOT NULL DEFAULT true",
       "ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS allowlist jsonb NOT NULL DEFAULT '[]'",
       "ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS fixed_paper_size integer NOT NULL DEFAULT 1",
+      "ALTER TABLE paper_orders ADD COLUMN IF NOT EXISTS lifecycle text NOT NULL DEFAULT 'open'",
+      "ALTER TABLE paper_orders ADD COLUMN IF NOT EXISTS mark_price text",
+      "ALTER TABLE paper_orders ADD COLUMN IF NOT EXISTS unrealized_pnl text",
+      "ALTER TABLE paper_orders ADD COLUMN IF NOT EXISTS exit_price text",
+      "ALTER TABLE paper_orders ADD COLUMN IF NOT EXISTS exit_exchange_order_id text",
+      "ALTER TABLE paper_orders ADD COLUMN IF NOT EXISTS realized_pnl text",
+      "ALTER TABLE paper_orders ADD COLUMN IF NOT EXISTS closed_at timestamptz",
+      "ALTER TABLE paper_orders ADD COLUMN IF NOT EXISTS entry_analysis jsonb",
     ]) {
       try {
         await db.execute(sql.raw(alter));

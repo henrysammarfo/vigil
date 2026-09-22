@@ -1,9 +1,15 @@
 # Session Log
 
+## 2026-09-22 — Trader rubric + mark-to-exit PnL
+
+- **Entry analysis:** Investopedia-aligned rubric (confirmation bias, trading psychology, after-hours liquidity/slippage, named invalidation). LLM returns bull/bear/invalidation/biasChecks; incomplete analysis → WATCH. Research: `docs/memory/research-raw/TRADER_RUBRIC_2026-09-22.md`.
+- **Paper ledger:** `lifecycle` open/closed · entry/mark/exit · unrealized + realized PnL · scoreboard wins/losses. APIs: `markPaperOrdersFn`, `closePaperOrderFn`. Trades UI: Mark open / Exit / Analysis expand.
+- **Live mark quote:** Bitget public ticker `NVDAUSDT` mark observed (~228.43). Unit tests: `tests/unit/trader-pnl.test.ts` (27 total green).
+
 ## 2026-09-22 — AgentRouter re-probe + JEV research + trade tally
 
 - **AgentRouter:** Tor smoke OK · `deepseek-v4-flash` · decision JSON returned (`smoke_llm_tor_ok` 22:39 UTC).
-- **Paper fills (Demo):** 4 accepted buys — probe NVDA `1486262952946679809`, CLI NVDA `1486264474501758976`, UI NVDA + AAPL. Closed PnL wins: **not tracked yet** (no exits).
+- **Paper fills (Demo):** 4 accepted buys — probe NVDA `1486262952946679809`, CLI NVDA `1486264474501758976`, UI NVDA + AAPL. Closed PnL wins: **ledger shipped** (mark/exit); historical opens need Exit on Trades.
 - **JEV:** TypeSafe “dumb AI” decision model trending (70–500 ms buy/sell/hold). Bitget AgentHub demos exist. VIGIL stays explainable closed-window paper — see `docs/memory/research-raw/JEV_2026-09-22.md`. Submission story/fundamentals expanded in `docs/submission/S2_SUBMISSION.md`.
 
 ## 2026-09-22 — Full e2e cycle papered (submission path)

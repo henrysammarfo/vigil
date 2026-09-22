@@ -1,8 +1,14 @@
+import { z } from "zod";
+import { VigilError } from "../security/errors";
+import {
+  TRADER_RUBRIC_SYSTEM,
+  buildTraderUserPayload,
+  parseEntryAnalysis,
+  type EntryAnalysis,
+} from "../agent/trader-rubric";
 import https from "node:https";
 import http from "node:http";
 import { SocksProxyAgent } from "socks-proxy-agent";
-import { z } from "zod";
-import { VigilError } from "../security/errors";
 
 function env(name: string): string | undefined {
   const v = process.env[name];
@@ -14,9 +20,22 @@ export const llmDecisionSchema = z.object({
   confidence: z.number().int().min(0).max(100),
   rationale: z.string().min(1).max(4000),
   metricLabel: z.enum(["observed", "estimated", "targeted"]).default("estimated"),
+  analysis: z
+    .object({
+      thesis: z.string().min(1).max(500),
+      bullCase: z.array(z.string()).max(6).default([]),
+      bearCase: z.array(z.string()).max(6).default([]),
+      invalidation: z.array(z.string()).max(6).default([]),
+      biasChecks: z.array(z.string()).max(6).default([]),
+      sessionRisk: z.string().max(500).default("unspecified"),
+      sizeRule: z.string().max(240).default("fixed paper size — never spray balance"),
+    })
+    .optional(),
 });
 
-export type LlmDecision = z.infer<typeof llmDecisionSchema>;
+export type LlmDecision = z.infer<typeof llmDecisionSchema> & {
+  entryAnalysis?: EntryAnalysis | null;
+};
 
 export type LlmProvider =
   "relay" | "agentrouter-proxy" | "agentrouter" | "agentrouter-anthropic" | "venice" | "dashscope";
@@ -30,18 +49,7 @@ export type LlmCallResult = {
 };
 
 /**
- * Multi-path LLM scoring.
- *
- * AgentRouter Aliyun WAF:
- *   - Cursor cloud IPs often get captcha HTML on agentrouter.org
- *   - Tor SOCKS (`AGENTROUTER_TOR_SOCKS`, default socks5h://127.0.0.1:9050 when
- *     AGENTROUTER_USE_TOR=1) clears the captcha; live probe: deepseek-v4-flash → 200
- *   - Key is valid (claude-opus-4-8 → budget exhausted, not Invalid API Key)
- *   - Fingerprint: QwenCode UA + x-stainless-*; sync Anthropic proxy optional
- *
- * TinyFish Fetch does not forward Authorization (docs) — target 401 ≠ bad TinyFish key.
- *
- * Order: relay → agentrouter-proxy → agentrouter → agentrouter-anthropic → venice → dashscope
+ * Multi-path LLM scoring with trader-discipline entry rubric.
  */
 export async function scoreEventWithLlm(input: {
   headline: string;
@@ -51,22 +59,9 @@ export async function scoreEventWithLlm(input: {
   minConfidence: number;
   allowlisted: boolean;
 }): Promise<LlmCallResult> {
-  const system = `You are VIGIL (FENN-disciplined). Closed-market paper-only Bitget rToken policy.
-Return ONLY compact JSON: {"action":"PAPER_BUY"|"PAPER_SELL"|"NO_TRADE"|"WATCH","confidence":0-100,"rationale":"...","metricLabel":"estimated"}.
-Rules:
-- Refuse by default for non-allowlisted names (allowlisted=${input.allowlisted}).
-- When allowlisted=true AND absolute move is roughly ≥1%, choose PAPER_BUY or PAPER_SELL with confidence ≥ ${input.minConfidence} when the headline is a plausible catalyst; otherwise NO_TRADE or WATCH.
-- Direction: positive move → prefer PAPER_BUY; negative → prefer PAPER_SELL; ambiguous → NO_TRADE.
-- No advice; never invent fills; paper-only.`;
-
-  const user = JSON.stringify({
-    headline: input.headline,
-    ticker: input.ticker,
-    movePct: input.movePct,
-    windowState: input.windowState,
-    minConfidence: input.minConfidence,
-    allowlisted: input.allowlisted,
-  });
+  const system = `${TRADER_RUBRIC_SYSTEM}
+minConfidence=${input.minConfidence}; allowlisted=${input.allowlisted}.`;
+  const user = buildTraderUserPayload(input);
 
   const order = (
     env("VIGIL_LLM_ORDER")?.trim() ||
@@ -427,7 +422,7 @@ async function callOpenAiCompatible(args: {
     choices?: Array<{ message?: { content?: string } }>;
   };
   const rawText = data.choices?.[0]?.message?.content?.trim() ?? "";
-  const decision = llmDecisionSchema.parse(JSON.parse(extractJson(rawText)));
+  const decision = normalizeDecision(JSON.parse(extractJson(rawText)));
   return {
     provider: args.provider,
     model: args.model,
@@ -476,7 +471,7 @@ async function callAnthropicCompatible(args: {
     headers,
     body: JSON.stringify({
       model: args.model,
-      max_tokens: 800,
+      max_tokens: 1200,
       system: args.system,
       messages: [{ role: "user", content: args.user }],
     }),
@@ -499,7 +494,7 @@ async function callAnthropicCompatible(args: {
       ?.map((c) => c.text ?? "")
       .join("\n")
       .trim() || extractJson(text);
-  const decision = llmDecisionSchema.parse(JSON.parse(extractJson(rawText)));
+  const decision = normalizeDecision(JSON.parse(extractJson(rawText)));
   return {
     provider: args.provider,
     model: args.model,
@@ -507,6 +502,16 @@ async function callAnthropicCompatible(args: {
     rawText,
     path: args.path + (args.viaTor ? "+tor" : ""),
   };
+}
+
+function normalizeDecision(raw: unknown): LlmDecision {
+  const parsed = llmDecisionSchema.parse(raw);
+  const entryAnalysis = parseEntryAnalysis(
+    parsed.analysis
+      ? { ...parsed.analysis, metricLabel: parsed.metricLabel }
+      : null,
+  );
+  return { ...parsed, entryAnalysis };
 }
 
 function extractJson(text: string): string {

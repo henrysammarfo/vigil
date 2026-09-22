@@ -19,6 +19,8 @@ export type WhyCardBody = {
   rationale: string;
   metricLabels: Record<string, string>;
   gates: string[];
+  /** Investopedia-aligned trader entry rubric (when scored) */
+  entryAnalysis?: Record<string, unknown>;
 };
 
 export async function sealWhyCard(

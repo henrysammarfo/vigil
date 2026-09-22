@@ -26,6 +26,7 @@
 - [x] FENN refuse-by-default (empty allowlist → NO why-cards)
 - [x] AgentRouter via Tor from cloud VM (`deepseek-v4-flash` live 200; key valid)
 - [x] Full agent cycle + UI demo recording for submission
+- [x] Mark-to-exit / paper PnL scoreboard (wins-losses) + Investopedia entry rubric
 - [ ] Venice / DashScope key (optional failover)
 
 ## Next ship order

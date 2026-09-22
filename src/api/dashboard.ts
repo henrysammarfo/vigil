@@ -6,6 +6,13 @@ import { runVigilPipeline } from "../vigil/agent/pipeline";
 import { listWhyCards, getWhyCard } from "../vigil/agent/journal";
 import { evaluateClosedWindow } from "../vigil/agent/closed-window";
 import {
+  closeOpenPaperOrder,
+  enrichOrderRow,
+  listEnrichedPaperOrders,
+  paperScoreboard,
+  refreshOpenPaperMarks,
+} from "../vigil/agent/paper-ledger";
+import {
   credentialsSchema,
   loginUser,
   logoutSession,
@@ -16,7 +23,6 @@ import { getDb } from "../vigil/db/client";
 import {
   contactMessages,
   decisions,
-  paperOrders,
   signals,
   tenantSettings,
   tenants,
@@ -88,12 +94,14 @@ export const dashboardOverviewFn = createServerFn({ method: "GET" }).handler(asy
       .where(eq(signals.tenantId, ctx.tenantId))
       .orderBy(desc(signals.createdAt))
       .limit(20);
-    const orderRows = await db
-      .select()
-      .from(paperOrders)
-      .where(eq(paperOrders.tenantId, ctx.tenantId))
-      .orderBy(desc(paperOrders.createdAt))
-      .limit(20);
+    const orderRows = await listEnrichedPaperOrders(ctx.tenantId, 40);
+    // Best-effort mark refresh for open Demo positions (non-blocking if quotes fail)
+    try {
+      await refreshOpenPaperMarks(ctx.tenantId);
+    } catch {
+      // keep prior rows
+    }
+    const ordersFresh = await listEnrichedPaperOrders(ctx.tenantId, 40);
     const decisionRows = await db
       .select()
       .from(decisions)
@@ -110,14 +118,16 @@ export const dashboardOverviewFn = createServerFn({ method: "GET" }).handler(asy
       weekendWatch: settings[0]?.weekendWatch ?? true,
       afterHoursWatch: settings[0]?.afterHoursWatch ?? true,
     });
+    const scoreboard = paperScoreboard(ordersFresh.length ? ordersFresh : orderRows);
     return {
       ok: true as const,
       window,
       signals: signalRows,
-      orders: orderRows,
+      orders: ordersFresh.length ? ordersFresh : orderRows,
       decisions: decisionRows,
       whyCards: why,
       settings: settings[0] ?? null,
+      scoreboard,
     };
   } catch (error) {
     return toErrorPayload(error);
@@ -223,18 +233,19 @@ export const whyCardFn = createServerFn({ method: "GET" })
 export const exportPaperLogFn = createServerFn({ method: "GET" }).handler(async () => {
   try {
     const ctx = await requireSession(cookieHeader());
-    const db = await getDb();
-    const orders = await db
-      .select()
-      .from(paperOrders)
-      .where(eq(paperOrders.tenantId, ctx.tenantId))
-      .orderBy(desc(paperOrders.createdAt));
+    try {
+      await refreshOpenPaperMarks(ctx.tenantId);
+    } catch {
+      // export still useful without marks
+    }
+    const orders = await listEnrichedPaperOrders(ctx.tenantId, 500);
     const why = await listWhyCards(ctx.tenantId, 500);
     return {
       ok: true as const,
       exportedAt: new Date().toISOString(),
       tenantId: ctx.tenantId,
       paperOnly: true,
+      scoreboard: paperScoreboard(orders),
       orders,
       whyCards: why,
     };
@@ -242,6 +253,55 @@ export const exportPaperLogFn = createServerFn({ method: "GET" }).handler(async 
     return toErrorPayload(error);
   }
 });
+
+export const markPaperOrdersFn = createServerFn({ method: "POST" }).handler(async () => {
+  try {
+    const ctx = await requireSession(cookieHeader());
+    if (!rateLimit(`mark:${ctx.tenantId}`, 20, 60_000)) {
+      return {
+        ok: false as const,
+        code: "RATE_LIMITED",
+        message: "Mark refresh rate limited",
+        status: 429,
+      };
+    }
+    const marked = await refreshOpenPaperMarks(ctx.tenantId);
+    const all = await listEnrichedPaperOrders(ctx.tenantId, 100);
+    return {
+      ok: true as const,
+      marked: marked.length,
+      scoreboard: paperScoreboard(all),
+      orders: all,
+    };
+  } catch (error) {
+    return toErrorPayload(error);
+  }
+});
+
+export const closePaperOrderFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) => z.object({ orderId: z.string().min(1) }).parse(data))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await requireSession(cookieHeader());
+      if (!rateLimit(`close:${ctx.tenantId}`, 12, 60_000)) {
+        return {
+          ok: false as const,
+          code: "RATE_LIMITED",
+          message: "Close rate limited",
+          status: 429,
+        };
+      }
+      const closed = await closeOpenPaperOrder(ctx.tenantId, data.orderId);
+      const all = await listEnrichedPaperOrders(ctx.tenantId, 100);
+      return {
+        ok: true as const,
+        order: enrichOrderRow(closed),
+        scoreboard: paperScoreboard(all),
+      };
+    } catch (error) {
+      return toErrorPayload(error);
+    }
+  });
 
 export const publicJournalFn = createServerFn({ method: "GET" }).handler(async () => {
   try {

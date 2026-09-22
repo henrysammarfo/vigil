@@ -1,7 +1,11 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { agentRuns, decisions, events, paperOrders, signals, tenantSettings } from "../db/schema";
-import { placeBitgetPaperOrder, assertPaperOnlySettings } from "../integrations/bitget-paper";
+import {
+  placeBitgetPaperOrder,
+  assertPaperOnlySettings,
+  fetchBitgetMarkQuote,
+} from "../integrations/bitget-paper";
 import { scoreEventWithLlm } from "../integrations/llm";
 import { ingestClosedMarketNews } from "../integrations/news";
 import { isVigilError } from "../security/errors";
@@ -10,6 +14,7 @@ import { evaluateClosedWindow } from "./closed-window";
 import { evaluateFennGates, fixedPaperQuantity, parseAllowlist } from "./fenn";
 import { sealWhyCard } from "./journal";
 import { assessRtokenSignal } from "./signal";
+import { analysisCompleteForPaper } from "./trader-rubric";
 
 export type PipelineResult = {
   runId: string;
@@ -231,6 +236,16 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
 
       let action = llm.decision.action;
       let rationale = llm.decision.rationale;
+      const entryAnalysis = llm.decision.entryAnalysis ?? null;
+
+      // Trader-discipline: PAPER_* requires complete bull/bear/invalidation/bias analysis
+      if (
+        (action === "PAPER_BUY" || action === "PAPER_SELL") &&
+        !analysisCompleteForPaper(entryAnalysis)
+      ) {
+        action = "WATCH";
+        rationale = `Incomplete entry rubric (need bull+≥2 bear+invalidation+biasChecks) · LLM had proposed ${llm.decision.action}`;
+      }
 
       // One-side enforcement after LLM proposes a direction
       if (action === "PAPER_BUY" || action === "PAPER_SELL") {
@@ -268,24 +283,32 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
         llm.decision.confidence >= settings.minConfidence
       ) {
         const side = action === "PAPER_BUY" ? "buy" : "sell";
+        const symbol = `${assessment.ticker}USDT`;
         // Fixed small size — never "use the rest of the balance"
         const order = await placeBitgetPaperOrder({
-          symbol: `${assessment.ticker}USDT`,
+          symbol,
           side,
           size: fixedSize,
         });
+        const mark = await fetchBitgetMarkQuote(symbol);
+        const entryPx = mark ? mark.mark.toFixed(6) : null;
         paperOrderId = newId("ord");
         await db.insert(paperOrders).values({
           id: paperOrderId,
           tenantId,
           decisionId,
-          symbol: `${assessment.ticker}USDT`,
+          symbol,
           side,
           quantity: fixedSize,
+          price: entryPx,
           status: order.status,
           exchangeOrderId: order.exchangeOrderId,
           rawResponse: order.raw,
           metricLabel: order.metricLabel,
+          lifecycle: "open",
+          markPrice: entryPx,
+          unrealizedPnl: "0",
+          entryAnalysis: entryAnalysis ?? undefined,
         });
         papered += 1;
         paperedTickers.add(assessment.ticker.toUpperCase());
@@ -307,6 +330,9 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
         llmProvider: llm.provider,
         llmModel: llm.model,
         rationale,
+        ...(entryAnalysis
+          ? { entryAnalysis: entryAnalysis as unknown as Record<string, unknown> }
+          : {}),
         metricLabels: {
           event: item.metricLabel,
           signal: assessment.metricLabel,
@@ -317,6 +343,7 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
           "closed-window-verified",
           "allowlist-pass",
           "signal-movement-checked",
+          "trader-rubric-scored",
           "policy-scored",
           paperOrderId ? "paper-order-accepted" : "no-paper-order",
           "why-card-sealed",

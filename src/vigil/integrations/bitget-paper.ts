@@ -19,13 +19,21 @@ export type PaperOrderResult = {
   metricLabel: "observed";
 };
 
+export type BitgetMarkQuote = {
+  symbol: string;
+  last: number;
+  mark: number;
+  raw: Record<string, unknown>;
+  metricLabel: "observed";
+};
+
 function requirePaperConfig(): {
   apiKey: string;
   apiSecret: string;
   passphrase: string;
   baseUrl: string;
 } {
-  const paper = process.env.BITGET_PAPER?.trim().toLowerCase();
+  const paper = process.env["BITGET_PAPER"]?.trim().toLowerCase();
   if (paper !== "true" && paper !== "1" && paper !== "yes") {
     throw new VigilError(
       "PAPER_LOCK_VIOLATION",
@@ -33,9 +41,9 @@ function requirePaperConfig(): {
       403,
     );
   }
-  const apiKey = process.env.BITGET_API_KEY?.trim();
-  const apiSecret = process.env.BITGET_API_SECRET?.trim();
-  const passphrase = process.env.BITGET_PASSPHRASE?.trim();
+  const apiKey = process.env["BITGET_API_KEY"]?.trim();
+  const apiSecret = process.env["BITGET_API_SECRET"]?.trim();
+  const passphrase = process.env["BITGET_PASSPHRASE"]?.trim();
   if (!apiKey || !apiSecret || !passphrase) {
     throw new VigilError(
       "BITGET_PAPER_NOT_CONFIGURED",
@@ -47,7 +55,7 @@ function requirePaperConfig(): {
     apiKey,
     apiSecret,
     passphrase,
-    baseUrl: process.env.BITGET_BASE_URL?.trim() || "https://api.bitget.com",
+    baseUrl: process.env["BITGET_BASE_URL"]?.trim() || "https://api.bitget.com",
   };
 }
 
@@ -65,13 +73,12 @@ export function toBitgetPaperSymbol(raw: string): string {
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "");
   if (!s) return s;
-  const mode = (process.env.BITGET_SYMBOL_MODE?.trim().toLowerCase() || "futures") as string;
+  const mode = (process.env["BITGET_SYMBOL_MODE"]?.trim().toLowerCase() || "futures") as string;
   if (mode === "reality") {
     if (!s.endsWith("USDT")) s = `${s}USDT`;
     if (s.startsWith("R")) return s;
     return `R${s}`;
   }
-  // futures demo: NVDA → NVDAUSDT (no r-prefix)
   if (s.startsWith("R") && s.length > 1) s = s.slice(1);
   if (!s.endsWith("USDT")) s = `${s}USDT`;
   return s;
@@ -80,10 +87,48 @@ export function toBitgetPaperSymbol(raw: string): string {
 /** @deprecated alias — prefer toBitgetPaperSymbol */
 export const toBitgetRtokenSymbol = toBitgetPaperSymbol;
 
+/** Public mark/last for USDT-FUTURES (no auth). */
+export async function fetchBitgetMarkQuote(symbolRaw: string): Promise<BitgetMarkQuote | null> {
+  const symbol = toBitgetPaperSymbol(symbolRaw);
+  const base = process.env["BITGET_BASE_URL"]?.trim() || "https://api.bitget.com";
+  try {
+    const url = `${base}/api/v2/mix/market/ticker?productType=USDT-FUTURES&symbol=${encodeURIComponent(symbol)}`;
+    const res = await fetch(url, { headers: { Accept: "application/json", locale: "en-US" } });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      data?: Record<string, unknown> | Array<Record<string, unknown>>;
+    };
+    const data = Array.isArray(json.data) ? json.data[0] : json.data;
+    if (!data) return null;
+    const last = Number(data["lastPr"] ?? data["last"] ?? data["close"]);
+    const mark = Number(data["markPrice"] ?? data["indexPrice"] ?? last);
+    if (!Number.isFinite(last) || last <= 0) return null;
+    return {
+      symbol,
+      last,
+      mark: Number.isFinite(mark) && mark > 0 ? mark : last,
+      raw: data,
+      metricLabel: "observed",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function computeLinearPnl(input: {
+  side: "buy" | "sell";
+  entry: number;
+  exit: number;
+  qty: number;
+}): number {
+  if (!(input.entry > 0) || !(input.exit > 0) || !(input.qty > 0)) return 0;
+  const dir = input.side === "buy" ? 1 : -1;
+  return dir * (input.exit - input.entry) * input.qty;
+}
+
 /**
  * Places a paper/demo order via Bitget UTA v3 REST.
  * Requires Demo API key + header paptrading: 1.
- * @see https://www.bitget.com/api-doc/uta/trade/Place-Order
  */
 export async function placeBitgetPaperOrder(req: PaperOrderRequest): Promise<PaperOrderResult> {
   const cfg = requirePaperConfig();
@@ -104,14 +149,14 @@ export async function placeBitgetPaperOrder(req: PaperOrderRequest): Promise<Pap
     clientOid,
   };
   if (category !== "SPOT" && category !== "MARGIN") {
-    bodyObj.posSide = posSide;
+    bodyObj["posSide"] = posSide;
   }
   if (orderType === "limit") {
     if (!req.price) {
       throw new VigilError("VALIDATION_ERROR", "limit orders require price", 400);
     }
-    bodyObj.price = req.price;
-    bodyObj.timeInForce = "gtc";
+    bodyObj["price"] = req.price;
+    bodyObj["timeInForce"] = "gtc";
   }
 
   const body = JSON.stringify(bodyObj);
@@ -149,20 +194,20 @@ export async function placeBitgetPaperOrder(req: PaperOrderRequest): Promise<Pap
     );
   }
 
-  const code = typeof raw.code === "string" ? raw.code : "";
+  const code = typeof raw["code"] === "string" ? raw["code"] : "";
   if (code && code !== "00000") {
     throw new VigilError(
       "BITGET_PAPER_NOT_CONFIGURED",
-      `Bitget paper order rejected: ${String(raw.msg ?? code)}`,
+      `Bitget paper order rejected: ${String(raw["msg"] ?? code)}`,
       502,
       raw,
     );
   }
 
-  const data = (raw.data as Record<string, unknown> | undefined) ?? {};
+  const data = (raw["data"] as Record<string, unknown> | undefined) ?? {};
   const exchangeOrderId =
-    (typeof data.orderId === "string" && data.orderId) ||
-    (typeof data.clientOid === "string" && data.clientOid) ||
+    (typeof data["orderId"] === "string" && data["orderId"]) ||
+    (typeof data["clientOid"] === "string" && data["clientOid"]) ||
     null;
 
   return {
@@ -171,6 +216,23 @@ export async function placeBitgetPaperOrder(req: PaperOrderRequest): Promise<Pap
     raw,
     metricLabel: "observed",
   };
+}
+
+/** Close an open paper position with opposite market side (Demo). */
+export async function closeBitgetPaperOrder(input: {
+  symbol: string;
+  openSide: "buy" | "sell";
+  size: string;
+}): Promise<PaperOrderResult> {
+  const closeSide = input.openSide === "buy" ? "sell" : "buy";
+  const posSide = input.openSide === "buy" ? "long" : "short";
+  return placeBitgetPaperOrder({
+    symbol: input.symbol,
+    side: closeSide,
+    size: input.size,
+    orderType: "market",
+    posSide,
+  });
 }
 
 export function assertPaperOnlySettings(paperOnly: boolean): void {

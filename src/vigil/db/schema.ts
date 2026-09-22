@@ -184,6 +184,15 @@ export const paperOrders = pgTable(
     rawResponse: jsonb("raw_response").$type<Record<string, unknown>>().notNull().default({}),
     metricLabel: text("metric_label").notNull().default("observed"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    /** open | closed — paper lifecycle (separate from exchange accept status) */
+    lifecycle: text("lifecycle").notNull().default("open"),
+    markPrice: text("mark_price"),
+    unrealizedPnl: text("unrealized_pnl"),
+    exitPrice: text("exit_price"),
+    exitExchangeOrderId: text("exit_exchange_order_id"),
+    realizedPnl: text("realized_pnl"),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    entryAnalysis: jsonb("entry_analysis").$type<Record<string, unknown>>(),
   },
   (t) => [index("paper_orders_tenant_created_idx").on(t.tenantId, t.createdAt)],
 );
