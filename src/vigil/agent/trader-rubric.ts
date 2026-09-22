@@ -47,7 +47,8 @@ Discipline (must follow — perfect-trader checklist):
 6. Direction: positive move + constructive catalyst → PAPER_BUY; negative + adverse catalyst → PAPER_SELL; conflict → NO_TRADE/WATCH.
 7. Bias circuit-breaker: call out FOMO, revenge trading, and sunk-cost fallacy (trading psychology). If emotional chase → WATCH/NO_TRADE.
 8. confidence ≥ minConfidence only when analysis is complete; else lower confidence + WATCH/NO_TRADE.
-9. Never invent fills, prices, or UIDs. Paper-only. Not financial advice.`;
+9. If memoryPriors show repeated losses / lesson-guard on this ticker+setup → prefer WATCH/NO_TRADE unless fresh disconfirming evidence.
+10. Never invent fills, prices, or UIDs. Paper-only. Not financial advice.`;
 
 export function buildTraderUserPayload(input: {
   headline: string;
@@ -56,9 +57,11 @@ export function buildTraderUserPayload(input: {
   windowState: string;
   minConfidence: number;
   allowlisted: boolean;
+  memoryPriors?: string[];
 }): string {
   return JSON.stringify({
     ...input,
+    memoryPriors: (input.memoryPriors ?? []).slice(0, 6),
     rubric: [
       "named setup + catalyst",
       "bull vs bear (disconfirming evidence)",
@@ -66,6 +69,7 @@ export function buildTraderUserPayload(input: {
       "session/liquidity/slippage risk labeled",
       "fixed size — FENN one-side",
       "bias circuit-breaker (FOMO/revenge/sunk-cost)",
+      "respect memoryPriors — do not repeat losing setups without new evidence",
     ],
     references: [
       "Investopedia confirmation-bias — do not cherry-pick headlines",

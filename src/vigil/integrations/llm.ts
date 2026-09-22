@@ -58,6 +58,7 @@ export async function scoreEventWithLlm(input: {
   windowState: string;
   minConfidence: number;
   allowlisted: boolean;
+  memoryPriors?: string[];
 }): Promise<LlmCallResult> {
   const system = `${TRADER_RUBRIC_SYSTEM}
 minConfidence=${input.minConfidence}; allowlisted=${input.allowlisted}.`;

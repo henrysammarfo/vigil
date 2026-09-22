@@ -28,6 +28,7 @@
 - [x] Full agent cycle + UI demo recording for submission
 - [x] Mark-to-exit / paper PnL scoreboard (wins-losses) + Investopedia entry rubric
 - [x] Rigorous walk-forward backtest + trade chart terminal (`/dashboard/terminal`)
+- [x] Fast smart agent memory (lessons + lesson-guard + cited priors)
 - [ ] Venice / DashScope key (optional failover)
 
 ## Next ship order

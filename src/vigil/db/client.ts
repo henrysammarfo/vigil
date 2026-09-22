@@ -170,6 +170,24 @@ CREATE TABLE IF NOT EXISTS agent_runs (
   finished_at timestamptz,
   summary jsonb NOT NULL DEFAULT '{}'
 );
+CREATE TABLE IF NOT EXISTS agent_lessons (
+  id text PRIMARY KEY,
+  tenant_id text NOT NULL REFERENCES tenants(id),
+  ticker text NOT NULL,
+  symbol text NOT NULL,
+  action text NOT NULL,
+  gate text NOT NULL,
+  move_pct text NOT NULL,
+  score integer NOT NULL DEFAULT 0,
+  outcome text NOT NULL,
+  realized_pnl text,
+  summary text NOT NULL,
+  tags jsonb NOT NULL DEFAULT '[]',
+  source text NOT NULL DEFAULT 'live',
+  decision_id text,
+  paper_order_id text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 CREATE TABLE IF NOT EXISTS audit_log (
   id text PRIMARY KEY,
   tenant_id text REFERENCES tenants(id),

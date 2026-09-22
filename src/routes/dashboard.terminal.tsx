@@ -16,7 +16,7 @@ import {
 import { Play, RefreshCw } from "lucide-react";
 import { DashboardShell, Panel } from "@/components/vigil/dashboard-shell";
 import { Button } from "@/components/ui/button";
-import { runBacktestFn, terminalSnapshotFn } from "@/api/dashboard";
+import { runBacktestFn, memoryDigestFn, terminalSnapshotFn } from "@/api/dashboard";
 
 export const Route = createFileRoute("/dashboard/terminal")({
   head: () => ({
@@ -122,6 +122,40 @@ function Terminal() {
     refetchInterval: 45_000,
   });
 
+  const mem = useQuery({
+    queryKey: ["vigil", "memory", symbol],
+    queryFn: () =>
+      memoryDigestFn({
+        data: { ticker: symbol.replace(/USDT$/, ""), movePct: 1.5 },
+      }) as Promise<
+        | {
+            ok: true;
+            digest: {
+              ticker: string;
+              closedSample: number;
+              expectancy: number | null;
+              winRate: number | null;
+              recentLossStreak: number;
+              guard: { blockPaper: boolean; reason: string; gate: string };
+              blockLines: string[];
+              metricLabel: string;
+            };
+            lessons: Array<{
+              id: string;
+              outcome: string;
+              summary: string;
+              realizedPnl: number | null;
+              source: string;
+              createdAt: string | Date;
+              gate: string;
+            }>;
+            stats: { total: number; byOutcome: Record<string, number>; tickers: number };
+          }
+        | { ok: false; code: string; message: string }
+      >,
+    refetchInterval: 60_000,
+  });
+
   const priceSeries = useMemo(() => {
     if (!snap.data || !snap.data.ok) return [];
     return snap.data.candles.map((c) => ({
@@ -193,9 +227,12 @@ function Terminal() {
       }
       setBacktest(res.result);
       const m = res.result.metrics;
+      const learned =
+        "lessonsWritten" in res.result ? Number((res.result as { lessonsWritten?: number }).lessonsWritten ?? 0) : 0;
       setBtMsg(
-        `OOS ${m.trades} trades · W${m.wins}/L${m.losses} · PnL ${fmt(m.totalPnl)} · DD ${fmt(m.maxDrawdown)}`,
+        `OOS ${m.trades} trades · W${m.wins}/L${m.losses} · PnL ${fmt(m.totalPnl)} · DD ${fmt(m.maxDrawdown)} · memory +${learned}`,
       );
+      await qc.invalidateQueries({ queryKey: ["vigil", "memory"] });
     } finally {
       setBtBusy(false);
     }
@@ -442,6 +479,81 @@ function Terminal() {
             </div>
             <p className="mt-3 text-[10px] text-muted-foreground">{backtest.honesty}</p>
           </>
+        )}
+      </Panel>
+
+      <Panel
+        title="Agent memory"
+        meta={
+          mem.data?.ok
+            ? `${mem.data.stats.total} lessons · ${mem.data.digest.guard.gate}`
+            : "loading"
+        }
+        className="mt-5"
+      >
+        {mem.data?.ok ? (
+          <>
+            <div className="mb-3 grid gap-3 sm:grid-cols-4">
+              <Tile label="Sample" value={String(mem.data.digest.closedSample)} />
+              <Tile
+                label="Expectancy"
+                value={
+                  mem.data.digest.expectancy != null
+                    ? fmt(mem.data.digest.expectancy)
+                    : "—"
+                }
+              />
+              <Tile
+                label="Win rate"
+                value={
+                  mem.data.digest.winRate != null
+                    ? `${(mem.data.digest.winRate * 100).toFixed(0)}%`
+                    : "—"
+                }
+              />
+              <Tile
+                label="Guard"
+                value={mem.data.digest.guard.blockPaper ? "BLOCK" : "PASS"}
+              />
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">{mem.data.digest.guard.reason}</p>
+            <ul className="mb-4 space-y-1 font-mono text-[11px] text-muted-foreground">
+              {mem.data.digest.blockLines.map((l) => (
+                <li key={l}>{l}</li>
+              ))}
+            </ul>
+            <div className="max-h-[220px] overflow-y-auto text-xs">
+              <table className="w-full text-left">
+                <thead className="sticky top-0 bg-card text-[10px] uppercase text-muted-foreground">
+                  <tr>
+                    <th className="pb-2">Outcome</th>
+                    <th>Source</th>
+                    <th>PnL</th>
+                    <th>Summary</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mem.data.lessons.slice(0, 20).map((l) => (
+                    <tr key={l.id} className="border-t border-border/70">
+                      <td className="py-2">{l.outcome}</td>
+                      <td>{l.source}</td>
+                      <td className="font-mono">{fmt(l.realizedPnl)}</td>
+                      <td className="max-w-[320px] truncate">{l.summary}</td>
+                    </tr>
+                  ))}
+                  {!mem.data.lessons.length && (
+                    <tr>
+                      <td colSpan={4} className="py-6 text-muted-foreground">
+                        No lessons yet — run a backtest or close a Demo trade to teach memory.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Sign in required for tenant memory.</p>
         )}
       </Panel>
     </DashboardShell>

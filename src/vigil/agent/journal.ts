@@ -21,6 +21,8 @@ export type WhyCardBody = {
   gates: string[];
   /** Investopedia-aligned trader entry rubric (when scored) */
   entryAnalysis?: Record<string, unknown>;
+  /** Fast memory priors cited into this decision */
+  memoryPriors?: string[];
 };
 
 export async function sealWhyCard(

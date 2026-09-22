@@ -24,12 +24,17 @@ Only paper a trade when after-hours or weekend news actually moves the rToken �
 US RTH closed?
   → news ingest (TinyFish Search / Tavily)
   → bitget-signal / rToken move check
-  → policy + declared LLM
+  → fast memory retrieve (ticker + move band) + lesson-guard
+  → policy + declared LLM (memoryPriors cited)
   → Agent Hub paper order (--paper-trading)
-  → append-only why-card (hash chain)
-  → dashboard + export + replay
+  → append-only why-card (hash chain + memory priors)
+  → lessons write on refuse / close / backtest
+  → dashboard + terminal + export + replay
 ```
 
+## Agent memory
+
+Structured `agent_lessons` (not embeddings): learn from live closes, refusals, and walk-forward backtests. Hot TTL cache for retrieve. Deterministic `lesson-guard` can force WATCH before LLM when expectancy/streak is bad — still seals a why-card.
 ## Multitenancy
 
 - Every business row has `tenant_id`

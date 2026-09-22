@@ -13,6 +13,11 @@ import { newId } from "../security/crypto";
 import { evaluateClosedWindow } from "./closed-window";
 import { evaluateFennGates, fixedPaperQuantity, parseAllowlist } from "./fenn";
 import { sealWhyCard } from "./journal";
+import {
+  buildMemoryDigest,
+  parseMovePctNumber,
+  recordLesson,
+} from "./memory";
 import { assessRtokenSignal } from "./signal";
 import { analysisCompleteForPaper } from "./trader-rubric";
 
@@ -156,6 +161,19 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
             "why-card-sealed",
           ],
         });
+        await recordLesson({
+          tenantId,
+          ticker: assessment.ticker,
+          action: "NO_TRADE",
+          gate: fenn.gate,
+          movePct: parseMovePctNumber(assessment.movePct),
+          score: assessment.score,
+          outcome: "refused",
+          summary: fenn.reason,
+          tags: ["fenn", fenn.gate],
+          source: "live",
+          decisionId,
+        });
         processed += 1;
         refused += 1;
         artifacts.push({
@@ -212,6 +230,19 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
             "why-card-sealed",
           ],
         });
+        await recordLesson({
+          tenantId,
+          ticker: assessment.ticker,
+          action: "NO_TRADE",
+          gate: "signal-rejected",
+          movePct: parseMovePctNumber(assessment.movePct),
+          score: assessment.score,
+          outcome: "refused",
+          summary: rationale,
+          tags: ["signal"],
+          source: "live",
+          decisionId,
+        });
         processed += 1;
         refused += 1;
         artifacts.push({
@@ -225,6 +256,84 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
         continue;
       }
 
+      const moveNum = parseMovePctNumber(assessment.movePct);
+      const memory = await buildMemoryDigest({
+        tenantId,
+        ticker: assessment.ticker,
+        movePct: moveNum,
+      });
+
+      // Deterministic lesson-guard before LLM (still seals a why-card)
+      if (memory.guard.blockPaper) {
+        const decisionId = newId("dec");
+        const rationale = `${memory.guard.reason} · priors cited`;
+        await db.insert(decisions).values({
+          id: decisionId,
+          tenantId,
+          signalId,
+          action: "WATCH",
+          confidence: Math.min(settings.minConfidence - 1, 65),
+          llmProvider: "memory-guard",
+          llmModel: "deterministic",
+          rationale,
+          metricLabel: memory.metricLabel,
+        });
+        const sealed = await sealWhyCard(tenantId, decisionId, {
+          eventId,
+          signalId,
+          decisionId,
+          paperOrderId: null,
+          headline: item.headline,
+          ticker: assessment.ticker,
+          action: "WATCH",
+          confidence: Math.min(settings.minConfidence - 1, 65),
+          windowState: window.state,
+          llmProvider: "memory-guard",
+          llmModel: "deterministic",
+          rationale,
+          memoryPriors: memory.blockLines,
+          metricLabels: {
+            event: item.metricLabel,
+            signal: assessment.metricLabel,
+            decision: memory.metricLabel,
+            memory: memory.metricLabel,
+          },
+          gates: [
+            "event-received",
+            "closed-window-verified",
+            "allowlist-pass",
+            "signal-movement-checked",
+            memory.guard.gate,
+            "no-paper-order",
+            "why-card-sealed",
+          ],
+        });
+        await recordLesson({
+          tenantId,
+          ticker: assessment.ticker,
+          action: "WATCH",
+          gate: memory.guard.gate,
+          movePct: moveNum,
+          score: assessment.score,
+          outcome: "watch",
+          summary: rationale,
+          tags: ["memory-guard"],
+          source: "live",
+          decisionId,
+        });
+        processed += 1;
+        refused += 1;
+        artifacts.push({
+          eventId,
+          signalId,
+          decisionId,
+          refused: true,
+          gate: memory.guard.gate,
+          why: sealed,
+        });
+        continue;
+      }
+
       const llm = await scoreEventWithLlm({
         headline: item.headline,
         ticker: assessment.ticker,
@@ -232,6 +341,7 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
         windowState: window.state,
         minConfidence: settings.minConfidence,
         allowlisted: true,
+        memoryPriors: memory.blockLines,
       });
 
       let action = llm.decision.action;
@@ -333,21 +443,40 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
         ...(entryAnalysis
           ? { entryAnalysis: entryAnalysis as unknown as Record<string, unknown> }
           : {}),
+        memoryPriors: memory.blockLines,
         metricLabels: {
           event: item.metricLabel,
           signal: assessment.metricLabel,
           decision: llm.decision.metricLabel,
+          memory: memory.metricLabel,
         },
         gates: [
           "event-received",
           "closed-window-verified",
           "allowlist-pass",
           "signal-movement-checked",
+          "memory-retrieved",
+          memory.guard.gate,
           "trader-rubric-scored",
           "policy-scored",
           paperOrderId ? "paper-order-accepted" : "no-paper-order",
           "why-card-sealed",
         ],
+      });
+
+      await recordLesson({
+        tenantId,
+        ticker: assessment.ticker,
+        action,
+        gate: paperOrderId ? "paper-open" : action === "WATCH" ? "watch" : "policy-refuse",
+        movePct: moveNum,
+        score: assessment.score,
+        outcome: paperOrderId ? "watch" : action === "WATCH" ? "watch" : "refused",
+        summary: rationale.slice(0, 400),
+        tags: paperOrderId ? ["paper-open", "pending-exit"] : ["policy"],
+        source: "live",
+        decisionId,
+        paperOrderId,
       });
 
       processed += 1;

@@ -12,6 +12,7 @@ import {
   fetchBitgetMarkQuote,
 } from "../integrations/bitget-paper";
 import { VigilError } from "../security/errors";
+import { outcomeFromPnl, recordLesson } from "./memory";
 
 export type EnrichedPaperOrder = typeof paperOrders.$inferSelect & {
   pnlStatus: "open" | "closed" | "unknown";
@@ -152,7 +153,28 @@ export async function closeOpenPaperOrder(
   };
 
   await db.update(paperOrders).set(patch).where(eq(paperOrders.id, row.id));
-  return enrichOrderRow({ ...row, ...patch });
+  const enriched = enrichOrderRow({ ...row, ...patch });
+  try {
+    const ticker = row.symbol.replace(/USDT$/i, "").toUpperCase();
+    await recordLesson({
+      tenantId,
+      ticker,
+      symbol: row.symbol,
+      action: row.side === "sell" ? "PAPER_SELL" : "PAPER_BUY",
+      gate: "mark-to-exit",
+      movePct: 0,
+      outcome: outcomeFromPnl(realized, "live"),
+      realizedPnl: realized,
+      summary: `Closed ${row.symbol} ${row.side} · realized ${realized.toFixed(4)}`,
+      tags: ["live-exit", enriched.winLoss ?? "flat"],
+      source: "live",
+      decisionId: row.decisionId,
+      paperOrderId: row.id,
+    });
+  } catch {
+    // memory write must not block Demo exit
+  }
+  return enriched;
 }
 
 export async function listEnrichedPaperOrders(

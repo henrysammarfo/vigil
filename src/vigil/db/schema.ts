@@ -237,6 +237,35 @@ export const agentRuns = pgTable(
   (t) => [index("agent_runs_tenant_started_idx").on(t.tenantId, t.startedAt)],
 );
 
+/** Fast structured agent memory — lessons from live / backtest (no embeddings). */
+export const agentLessons = pgTable(
+  "agent_lessons",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    ticker: text("ticker").notNull(),
+    symbol: text("symbol").notNull(),
+    action: text("action").notNull(),
+    gate: text("gate").notNull(),
+    movePct: text("move_pct").notNull(),
+    score: integer("score").notNull().default(0),
+    outcome: text("outcome").notNull(),
+    realizedPnl: text("realized_pnl"),
+    summary: text("summary").notNull(),
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    source: text("source").notNull().default("live"),
+    decisionId: text("decision_id"),
+    paperOrderId: text("paper_order_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("agent_lessons_tenant_created_idx").on(t.tenantId, t.createdAt),
+    index("agent_lessons_tenant_ticker_idx").on(t.tenantId, t.ticker),
+  ],
+);
+
 export const auditLog = pgTable(
   "audit_log",
   {

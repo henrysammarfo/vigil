@@ -382,6 +382,38 @@ export const windowStatusFn = createServerFn({ method: "GET" }).handler(async ()
   return { ok: true as const, window: evaluateClosedWindow() };
 });
 
+export const memoryDigestFn = createServerFn({ method: "GET" })
+  .validator((data: unknown) =>
+    z
+      .object({
+        ticker: z.string().min(1).max(16).default("NVDA"),
+        movePct: z.number().default(1.5),
+      })
+      .parse(data ?? {}),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await requireSession(cookieHeader());
+      const {
+        buildMemoryDigest,
+        listRecentLessons,
+        memoryStats,
+      } = await import("../vigil/agent/memory");
+      const digest = await buildMemoryDigest({
+        tenantId: ctx.tenantId,
+        ticker: data.ticker,
+        movePct: data.movePct,
+      });
+      const [lessons, stats] = await Promise.all([
+        listRecentLessons(ctx.tenantId, 30),
+        memoryStats(ctx.tenantId),
+      ]);
+      return { ok: true as const, digest, lessons, stats };
+    } catch (error) {
+      return toErrorPayload(error);
+    }
+  });
+
 export const terminalSnapshotFn = createServerFn({ method: "GET" })
   .validator((data: unknown) =>
     z
@@ -503,6 +535,25 @@ export const runBacktestFn = createServerFn({ method: "POST" })
         ? runWalkForwardBacktest({ symbol, candles, events, config, trainRatio: 0.7 })
         : runBacktest({ symbol, candles, events, config });
 
+      const { ingestBacktestLessons } = await import("../vigil/agent/memory");
+      const learned = await ingestBacktestLessons({
+        tenantId: ctx.tenantId,
+        symbol,
+        trades: result.trades.map((t) => ({
+          side: t.side,
+          realizedPnl: t.realizedPnl,
+          score: t.score,
+          headline: t.headline,
+          entryPx: t.entryPx,
+          exitReason: t.exitReason,
+        })),
+        refusals: result.refusals.map((r) => ({
+          ticker: r.ticker,
+          reason: r.reason,
+          gate: r.gate,
+        })),
+      });
+
       return {
         ok: true as const,
         result: {
@@ -516,6 +567,7 @@ export const runBacktestFn = createServerFn({ method: "POST" })
           refusals: result.refusals.slice(0, 40),
           honesty: result.honesty,
           config: result.config,
+          lessonsWritten: learned.written,
         },
       };
     } catch (error) {
