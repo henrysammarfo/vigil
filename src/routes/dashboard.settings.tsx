@@ -31,9 +31,15 @@ function SettingsPage() {
   const [allowlistText, setAllowlistText] = useState("");
   const [fixedPaperSize, setFixedPaperSize] = useState(1);
   const [msg, setMsg] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [hydratedKey, setHydratedKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!settings) return;
+    const key = `${settings.tenantId}:${settings.updatedAt}`;
+    // Don't clobber in-progress edits when react-query refetches the same row.
+    if (dirty && hydratedKey) return;
+    if (hydratedKey === key) return;
     setWeekendWatch(settings.weekendWatch);
     setAfterHoursWatch(settings.afterHoursWatch);
     setMaxPositionUsd(settings.maxPositionUsd);
@@ -42,7 +48,14 @@ function SettingsPage() {
     setFennMode(settings.fennMode ?? true);
     setAllowlistText(Array.isArray(settings.allowlist) ? settings.allowlist.join(", ") : "");
     setFixedPaperSize(settings.fixedPaperSize ?? 1);
-  }, [settings]);
+    setHydratedKey(key);
+    setDirty(false);
+  }, [settings, dirty, hydratedKey]);
+
+  function touchAllowlist(v: string) {
+    setDirty(true);
+    setAllowlistText(v);
+  }
 
   return (
     <DashboardShell title="Settings" kicker="FENN workspace policy">
@@ -53,19 +66,28 @@ function SettingsPage() {
             name="FENN refuse-by-default"
             desc="Empty allowlist → NO cards. Headline alone is never a fill."
             on={fennMode}
-            onChange={setFennMode}
+            onChange={(v) => {
+              setDirty(true);
+              setFennMode(v);
+            }}
           />
           <Setting
             name="Weekend watch"
             desc="Monitor Saturday and Sunday events."
             on={weekendWatch}
-            onChange={setWeekendWatch}
+            onChange={(v) => {
+              setDirty(true);
+              setWeekendWatch(v);
+            }}
           />
           <Setting
             name="After-hours watch"
             desc="Monitor post-close weekday events."
             on={afterHoursWatch}
-            onChange={setAfterHoursWatch}
+            onChange={(v) => {
+              setDirty(true);
+              setAfterHoursWatch(v);
+            }}
           />
         </Panel>
         <Panel title="Allowlist · human GO">
@@ -76,7 +98,10 @@ function SettingsPage() {
             className="mt-2 rounded-none"
             placeholder="e.g. NVDA"
             value={allowlistText}
-            onChange={(e) => setAllowlistText(e.target.value)}
+            onChange={(e) => touchAllowlist(e.target.value)}
+            onBlur={(e) => touchAllowlist(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
           />
           <p className="mt-3 text-xs text-muted-foreground">
             Demo shape: ten headlines, nine NO why-cards, one paper only when the name is here.
@@ -88,7 +113,10 @@ function SettingsPage() {
             type="number"
             className="mt-2 rounded-none"
             value={fixedPaperSize}
-            onChange={(e) => setFixedPaperSize(Number(e.target.value))}
+            onChange={(e) => {
+              setDirty(true);
+              setFixedPaperSize(Number(e.target.value));
+            }}
           />
           <label className="mt-5 block text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
             Min confidence
@@ -97,7 +125,10 @@ function SettingsPage() {
             type="number"
             className="mt-2 rounded-none"
             value={minConfidence}
-            onChange={(e) => setMinConfidence(Number(e.target.value))}
+            onChange={(e) => {
+              setDirty(true);
+              setMinConfidence(Number(e.target.value));
+            }}
           />
           <label className="mt-5 block text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
             Max position USD (risk cap, not spray size)
@@ -106,7 +137,10 @@ function SettingsPage() {
             type="number"
             className="mt-2 rounded-none"
             value={maxPositionUsd}
-            onChange={(e) => setMaxPositionUsd(Number(e.target.value))}
+            onChange={(e) => {
+              setDirty(true);
+              setMaxPositionUsd(Number(e.target.value));
+            }}
           />
           <label className="mt-5 block text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
             LLM declared (submission field)
@@ -114,7 +148,10 @@ function SettingsPage() {
           <Input
             className="mt-2 rounded-none"
             value={llmDeclared}
-            onChange={(e) => setLlmDeclared(e.target.value)}
+            onChange={(e) => {
+              setDirty(true);
+              setLlmDeclared(e.target.value);
+            }}
           />
           <Button
             className="mt-6"
@@ -137,7 +174,9 @@ function SettingsPage() {
                 },
               });
               if (res.ok) {
-                setMsg("Saved");
+                setMsg(`Saved · allowlist ${allowlist.length ? allowlist.join(",") : "(empty)"}`);
+                setDirty(false);
+                setHydratedKey(null);
                 await qc.invalidateQueries({ queryKey: ["vigil"] });
               } else {
                 setMsg(`${res.code}: ${res.message}`);
