@@ -1,2 +1,88 @@
-import { createFileRoute } from "@tanstack/react-router";import { Pause, Play, RotateCcw, SkipForward } from "lucide-react";import { useState } from "react";import { DashboardShell,Panel } from "@/components/vigil/dashboard-shell";import { Button } from "@/components/ui/button";
-export const Route=createFileRoute('/dashboard/replay')({head:()=>({meta:[{title:'Replay — VIGIL'},{name:'description',content:'Replay VIGIL event decisions gate by gate.'},{property:'og:title',content:'VIGIL Replay'},{property:'og:description',content:'See an event become an explainable paper decision.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}),component:Replay});const steps=['Event received','Closed window verified','Signal movement confirmed','Policy score 92','Paper order accepted','Why-card sealed'];function Replay(){const [at,setAt]=useState(3);const [playing,setPlaying]=useState(false);return <DashboardShell title="Decision replay" kicker="NVDA · event #001"><Panel title="Timeline" meta="8.2 seconds total"><div className="py-8"><div className="relative mx-auto flex max-w-4xl justify-between before:absolute before:left-4 before:right-4 before:top-4 before:h-px before:bg-border">{steps.map((s,i)=><button key={s} onClick={()=>setAt(i)} className="relative z-10 flex w-24 flex-col items-center gap-3 text-center"><span className={i<=at?'flex h-8 w-8 items-center justify-center bg-primary text-xs font-bold':'flex h-8 w-8 items-center justify-center border border-border bg-background text-xs'}>{i+1}</span><span className="text-[10px] uppercase leading-4">{s}</span></button>)}</div><div className="mt-14 flex justify-center gap-2"><Button variant="outline" size="icon" onClick={()=>setAt(0)}><RotateCcw/></Button><Button variant="signal" size="icon" onClick={()=>setPlaying(!playing)}>{playing?<Pause/>:<Play/>}</Button><Button variant="outline" size="icon" onClick={()=>setAt(Math.min(5,at+1))}><SkipForward/></Button></div></div></Panel><Panel title={`Gate 0${at+1}`} meta={`${((at+1)*1.36).toFixed(1)}s`} className="mt-4"><p className="text-3xl font-bold uppercase">{steps[at]}</p><p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">Replay exposes the exact state transition and evidence available at this moment. No future information is included.</p></Panel></DashboardShell>}
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { DashboardShell, Panel } from "@/components/vigil/dashboard-shell";
+import { useDashboard } from "@/components/vigil/dashboard-data";
+import { Button } from "@/components/ui/button";
+
+export const Route = createFileRoute("/dashboard/replay")({
+  head: () => ({
+    meta: [
+      { title: "Replay — VIGIL" },
+      { name: "description", content: "Replay VIGIL event decisions gate by gate." },
+    ],
+  }),
+  component: Replay,
+});
+
+function Replay() {
+  const q = useDashboard();
+  const card = q.data?.ok ? q.data.whyCards[0] : null;
+  const body = (card?.body ?? {}) as { gates?: string[]; ticker?: string; action?: string };
+  const steps = useMemo(
+    () =>
+      body.gates?.length
+        ? body.gates
+        : [
+            "Event received",
+            "Closed window verified",
+            "Signal movement confirmed",
+            "Policy scored",
+            "Paper order / no-trade",
+            "Why-card sealed",
+          ],
+    [body.gates],
+  );
+  const [at, setAt] = useState(0);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!playing) return;
+    if (at >= steps.length - 1) {
+      setPlaying(false);
+      return;
+    }
+    const t = setTimeout(() => setAt((v) => v + 1), 900);
+    return () => clearTimeout(t);
+  }, [playing, at, steps.length]);
+
+  return (
+    <DashboardShell
+      title="Decision replay"
+      kicker={card ? `${String(body.ticker)} · ${String(body.action)}` : "Awaiting sealed why-card"}
+    >
+      <Panel title="Timeline" meta={card ? `seq #${card.seq}` : "no live card"}>
+        <div className="py-8">
+          <div className="relative mx-auto flex max-w-4xl justify-between before:absolute before:left-4 before:right-4 before:top-4 before:h-px before:bg-border">
+            {steps.map((s, i) => (
+              <button
+                key={`${s}-${i}`}
+                type="button"
+                onClick={() => setAt(i)}
+                className="relative z-10 flex w-24 flex-col items-center gap-3"
+              >
+                <span
+                  className={`flex h-8 w-8 items-center justify-center text-xs font-bold ${
+                    i <= at
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <span className="text-center text-[10px] uppercase tracking-[0.08em]">{s}</span>
+              </button>
+            ))}
+          </div>
+          <div className="mt-10 flex justify-center gap-3">
+            <Button variant="outline" onClick={() => setAt(0)}>
+              Reset
+            </Button>
+            <Button variant="signal" onClick={() => setPlaying(true)}>
+              Play
+            </Button>
+          </div>
+        </div>
+      </Panel>
+    </DashboardShell>
+  );
+}

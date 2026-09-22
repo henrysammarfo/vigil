@@ -78,7 +78,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "VIGIL — Closed-market intelligence" },
-      { name: "description", content: "Event-driven paper trading for tokenized US stocks after the closing bell." },
+      {
+        name: "description",
+        content: "Event-driven paper trading for tokenized US stocks after the closing bell.",
+      },
       { name: "author", content: "Henry Sam Marfo" },
       { property: "og:title", content: "VIGIL — Closed-market intelligence" },
       { property: "og:description", content: "Watch the market while the market sleeps." },

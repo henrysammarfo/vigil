@@ -1,0 +1,39 @@
+---
+description: VIGIL S2 architecture, honesty, and production constraints — always apply
+alwaysApply: true
+---
+
+# VIGIL Core Rules
+
+## Binding docs
+
+Read and update `docs/memory/` and `.cursor/skills/vigil-s2-build/` before architectural changes.
+
+## Honesty
+
+- Paper trading only for S2. Never claim live capital results.
+- Never invent Bitget UIDs, fills, Sharpe, or headlines.
+- Label metrics `observed` | `estimated` | `targeted`.
+- Do not claim the system is unhackable.
+
+## No mocks on the trading path
+
+- No static fake signals as source of truth.
+- No silent LLM/Bitget/news fallbacks that invent data.
+- Fail closed with typed errors when integrations are unavailable.
+
+## Sessions & multitenancy
+
+- httpOnly secure cookie sessions only — never localStorage for auth/secrets.
+- Every business query filters by `tenant_id`.
+
+## Secrets
+
+- Secrets live in env / Secret Manager only.
+- Never commit API keys or put them in memory MDs.
+
+## Stack contract
+
+- Frontend: TanStack Start (Lovable/Cloudflare).
+- Backend worker/DB/secrets: GCP Cloud Run + Cloud SQL + Secret Manager.
+- LLM: AgentRouter primary, Venice alternate — declare model in why-cards.
