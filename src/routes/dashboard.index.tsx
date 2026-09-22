@@ -37,7 +37,7 @@ function Overview() {
       }
       actions={
         <Button
-          variant="signal"
+          variant={window && !window.allowed ? "outline" : "signal"}
           size="sm"
           disabled={!window?.allowed || Boolean(runMsg?.startsWith("Running"))}
           title={
