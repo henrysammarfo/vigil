@@ -10,7 +10,7 @@
 | TinyFish Fetch | `TINYFISH_API_KEY` | **OK** (HTTP 200) | Does **not** forward `Authorization` to targets |
 | TinyFish Agent / Browser | `TINYFISH_API_KEY` | **0 credits** (403) | Not required for news |
 | Tavily Search | `TAVILY_API_KEY` | **Quota exceeded** | Top-up or rely on TinyFish |
-| AgentRouter LLM | `AGENTROUTER_API_KEY` + `AGENTROUTER_USE_TOR=1` | **OK via Tor** | Direct cloud IP → captcha HTML; Tor + stainless → live JSON. `deepseek-v4-flash` **HTTP 200**; `claude-opus-4-8` → budget exhausted (key valid) |
+| AgentRouter LLM | `AGENTROUTER_API_KEY` + `AGENTROUTER_USE_TOR=1` | **OK via Tor** (re-probed 22:39 UTC) | Direct cloud IP → captcha HTML; Tor + stainless → live JSON. `deepseek-v4-flash` **HTTP 200**; `claude-opus-4-8` → budget exhausted (key valid) |
 | Venice LLM | `VENICE_API_KEY` | Optional failover | |
 | DashScope / Qwen | `DASHSCOPE_API_KEY` / `QWEN_API_KEY` | Optional | |
 | LLM relay | `VIGIL_LLM_RELAY_URL` | Optional | `worker/llm-relay.ts` |
