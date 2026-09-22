@@ -5,6 +5,7 @@
 - **Entry analysis:** Investopedia-aligned rubric (confirmation bias, trading psychology, after-hours liquidity/slippage, named invalidation). LLM returns bull/bear/invalidation/biasChecks; incomplete analysis → WATCH. Research: `docs/memory/research-raw/TRADER_RUBRIC_2026-09-22.md`.
 - **Paper ledger:** `lifecycle` open/closed · entry/mark/exit · unrealized + realized PnL · scoreboard wins/losses. APIs: `markPaperOrdersFn`, `closePaperOrderFn`. Trades UI: Mark open / Exit / Analysis expand.
 - **Live mark quote:** Bitget public ticker `NVDAUSDT` mark observed (~228.43). Unit tests: `tests/unit/trader-pnl.test.ts` (27 total green).
+- **Live Demo mark-to-exit:** open `1486426725464522752` → close `1486426726529875968` (flat instantaneous round-trip). Artifact `vigil-demo-mark-to-exit-2026-09-22.json`.
 
 ## 2026-09-22 — AgentRouter re-probe + JEV research + trade tally
 
