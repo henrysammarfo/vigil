@@ -5,9 +5,10 @@ Official: [Bitget Demo Trading REST](https://www.bitget.com/api-doc/classic/demo
 ## 1. Create a Demo API Key (not a live key)
 
 1. Log in at [bitget.com](https://www.bitget.com)
-2. Switch to **Demo** mode (demo trading / paper)
-3. Personal Center → **API Key Management**
-4. **Create a Demo API Key**
+2. Switch to **Demo** mode (demo trading / paper) — your ~3M USDT demo balance is the right account
+3. Personal Center → **API Key Management** → Create
+4. On **Select API key type**, choose **System-generated API key** (HMAC)
+   - Do **not** pick User-generated / RSA — VIGIL signs with HMAC-SHA256 (`createHmac`)
 5. Enable trade permissions needed for paper orders
 6. Copy **API Key**, **Secret**, **Passphrase** once (secret shown once)
 
