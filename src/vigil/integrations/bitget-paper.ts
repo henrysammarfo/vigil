@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { VigilError } from "../security/errors";
 
 export type PaperOrderRequest = {
@@ -7,6 +7,9 @@ export type PaperOrderRequest = {
   size: string;
   orderType?: "market" | "limit";
   price?: string;
+  /** Hedge-mode position side; defaults from buy→long / sell→short */
+  posSide?: "long" | "short";
+  category?: "USDT-FUTURES" | "SPOT" | "MARGIN" | "USDC-FUTURES" | "COIN-FUTURES";
 };
 
 export type PaperOrderResult = {
@@ -53,25 +56,64 @@ function sign(secret: string, prehash: string): string {
 }
 
 /**
- * Places a paper/demo order via Bitget UTA-style REST.
- * Uses Demo credentials only when BITGET_PAPER=true.
- * Endpoint path follows Bitget mix/spot place-order conventions; response is stored raw.
+ * Normalize ticker for Demo USDT-FUTURES stock pairs (AAPLUSDT, NVDAUSDT, …).
+ * Reality spot rTokens (RNVDUSDT) use BITGET_SYMBOL_MODE=reality.
+ */
+export function toBitgetPaperSymbol(raw: string): string {
+  let s = raw
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+  if (!s) return s;
+  const mode = (process.env.BITGET_SYMBOL_MODE?.trim().toLowerCase() || "futures") as string;
+  if (mode === "reality") {
+    if (!s.endsWith("USDT")) s = `${s}USDT`;
+    if (s.startsWith("R")) return s;
+    return `R${s}`;
+  }
+  // futures demo: NVDA → NVDAUSDT (no r-prefix)
+  if (s.startsWith("R") && s.length > 1) s = s.slice(1);
+  if (!s.endsWith("USDT")) s = `${s}USDT`;
+  return s;
+}
+
+/** @deprecated alias — prefer toBitgetPaperSymbol */
+export const toBitgetRtokenSymbol = toBitgetPaperSymbol;
+
+/**
+ * Places a paper/demo order via Bitget UTA v3 REST.
+ * Requires Demo API key + header paptrading: 1.
+ * @see https://www.bitget.com/api-doc/uta/trade/Place-Order
  */
 export async function placeBitgetPaperOrder(req: PaperOrderRequest): Promise<PaperOrderResult> {
   const cfg = requirePaperConfig();
   const timestamp = Date.now().toString();
-  const path = "/api/v2/mix/order/place-order";
-  const bodyObj = {
-    symbol: req.symbol,
-    productType: "USDT-FUTURES",
-    marginMode: "crossed",
-    marginCoin: "USDT",
-    size: req.size,
+  const path = "/api/v3/trade/place-order";
+  const category = req.category ?? "USDT-FUTURES";
+  const symbol = toBitgetPaperSymbol(req.symbol);
+  const orderType = req.orderType ?? "market";
+  const posSide = req.posSide ?? (req.side === "buy" ? "long" : "short");
+  const clientOid = `vigil_${randomBytes(8).toString("hex")}`.slice(0, 32);
+
+  const bodyObj: Record<string, string> = {
+    category,
+    symbol,
+    qty: req.size,
     side: req.side,
-    orderType: req.orderType ?? "market",
-    force: "gtc",
-    ...(req.price ? { price: req.price } : {}),
+    orderType,
+    clientOid,
   };
+  if (category !== "SPOT" && category !== "MARGIN") {
+    bodyObj.posSide = posSide;
+  }
+  if (orderType === "limit") {
+    if (!req.price) {
+      throw new VigilError("VALIDATION_ERROR", "limit orders require price", 400);
+    }
+    bodyObj.price = req.price;
+    bodyObj.timeInForce = "gtc";
+  }
+
   const body = JSON.stringify(bodyObj);
   const prehash = `${timestamp}POST${path}${body}`;
   const signature = sign(cfg.apiSecret, prehash);
@@ -85,7 +127,6 @@ export async function placeBitgetPaperOrder(req: PaperOrderRequest): Promise<Pap
       "ACCESS-TIMESTAMP": timestamp,
       "ACCESS-PASSPHRASE": cfg.passphrase,
       locale: "en-US",
-      // Demo / paper routing header used by Bitget demo environments
       paptrading: "1",
     },
     body,
@@ -108,6 +149,16 @@ export async function placeBitgetPaperOrder(req: PaperOrderRequest): Promise<Pap
     );
   }
 
+  const code = typeof raw.code === "string" ? raw.code : "";
+  if (code && code !== "00000") {
+    throw new VigilError(
+      "BITGET_PAPER_NOT_CONFIGURED",
+      `Bitget paper order rejected: ${String(raw.msg ?? code)}`,
+      502,
+      raw,
+    );
+  }
+
   const data = (raw.data as Record<string, unknown> | undefined) ?? {};
   const exchangeOrderId =
     (typeof data.orderId === "string" && data.orderId) ||
@@ -115,7 +166,7 @@ export async function placeBitgetPaperOrder(req: PaperOrderRequest): Promise<Pap
     null;
 
   return {
-    status: typeof raw.code === "string" && raw.code === "00000" ? "accepted" : "submitted",
+    status: code === "00000" ? "accepted" : "submitted",
     exchangeOrderId,
     raw,
     metricLabel: "observed",

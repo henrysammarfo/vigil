@@ -1,10 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { VigilError } from "../../src/vigil/security/errors";
-import { assertPaperOnlySettings } from "../../src/vigil/integrations/bitget-paper";
+import {
+  assertPaperOnlySettings,
+  toBitgetPaperSymbol,
+} from "../../src/vigil/integrations/bitget-paper";
 
 describe("paper lock", () => {
   it("refuses when tenant paperOnly is false", () => {
     expect(() => assertPaperOnlySettings(false)).toThrow(VigilError);
+  });
+
+  it("normalizes tickers to Bitget paper symbols", () => {
+    expect(toBitgetPaperSymbol("NVDA")).toBe("NVDAUSDT");
+    expect(toBitgetPaperSymbol("rNVDAUSDT")).toBe("NVDAUSDT");
+    expect(toBitgetPaperSymbol("nvda-usdt")).toBe("NVDAUSDT");
   });
 
   it("requires BITGET_PAPER=true before placing orders", async () => {

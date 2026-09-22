@@ -49,8 +49,16 @@ VIGIL refuses to trade unless `BITGET_PAPER=true` (`PAPER_LOCK_VIOLATION`).
 
 `src/vigil/integrations/bitget-paper.ts` sends:
 
-- HMAC-signed REST to `/api/v2/mix/order/place-order`
+- HMAC-signed REST to **UTA** `/api/v3/trade/place-order`
 - Header `paptrading: 1` (required by Bitget Demo REST)
+- Symbols as Demo USDT-FUTURES stock pairs (`NVDA` → `NVDAUSDT`)
+- Optional `BITGET_SYMBOL_MODE=reality` for Reality spot (`RNVDUSDT`, …)
+
+### Claim demo funds (if equity is 0 / insufficient margin)
+
+1. Stay in Demo: https://www.bitget.com/futures/demo  
+2. Click **Deposit** on the demo trading page to claim virtual SUSDT  
+3. Re-check until `usdtEquity` > 0 — then paper orders can fill
 
 ## 4. Run paper for the competition window
 
