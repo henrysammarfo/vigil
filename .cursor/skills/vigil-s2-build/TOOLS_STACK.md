@@ -18,8 +18,10 @@
 | News search | TinyFish Search | `TINYFISH_API_KEY` |
 | News search alt | Tavily | `TAVILY_API_KEY` |
 | Page fetch | TinyFish Fetch | `TINYFISH_API_KEY` |
-| LLM primary | AgentRouter OpenAI-compatible | `AGENTROUTER_API_KEY` |
+| LLM primary | AgentRouter (OpenAI + Anthropic + sync proxy) | `AGENTROUTER_API_KEY`, optional `AGENTROUTER_PROXY_URL` |
+| LLM portal bases | `co.agentrouter.org` (`/v1` OpenAI; root Anthropic) | `AGENTROUTER_BASE_URL`, `AGENTROUTER_ANTHROPIC_BASE` |
 | LLM alternate | Venice | `VENICE_API_KEY` |
+| LLM relay | CF Worker stainless relay | `VIGIL_LLM_RELAY_URL` → `worker/llm-relay.ts` |
 | Paper execution | Bitget Agent Hub / Demo API | `BITGET_API_KEY` `BITGET_API_SECRET` `BITGET_PASSPHRASE` `BITGET_PAPER=true` |
 
 ## Explicitly not used for S2 truth path

@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "smoke:live": "bun scripts/smoke-live.ts",
     "worker": "bun worker/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "agentrouter:proxy": "bash scripts/agentrouter-proxy/start.sh"
   },
   "overrides": {
     "rolldown": "1.2.1"
