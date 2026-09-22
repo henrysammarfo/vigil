@@ -1,5 +1,11 @@
 # Session Log
 
+## 2026-09-22 — AgentRouter re-probe + JEV research + trade tally
+
+- **AgentRouter:** Tor smoke OK · `deepseek-v4-flash` · decision JSON returned (`smoke_llm_tor_ok` 22:39 UTC).
+- **Paper fills (Demo):** 4 accepted buys — probe NVDA `1486262952946679809`, CLI NVDA `1486264474501758976`, UI NVDA + AAPL. Closed PnL wins: **not tracked yet** (no exits).
+- **JEV:** TypeSafe “dumb AI” decision model trending (70–500 ms buy/sell/hold). Bitget AgentHub demos exist. VIGIL stays explainable closed-window paper — see `docs/memory/research-raw/JEV_2026-09-22.md`. Submission story/fundamentals expanded in `docs/submission/S2_SUBMISSION.md`.
+
 ## 2026-09-22 — Full e2e cycle papered (submission path)
 
 - Fixed signal gate: only `Rejected` blocks pre-LLM; `minConfidence` applies after LLM paper decision.
