@@ -4,9 +4,13 @@ Official: [Bitget Demo Trading REST](https://www.bitget.com/api-doc/classic/demo
 
 ## 1. Create a Demo API Key (not a live key)
 
+> **Critical:** The key must be created **after switching into Demo mode**.
+> A key from the normal Account → API page is a **live** key. Using it with
+> `paptrading: 1` returns `40099 exchange environment is incorrect`.
+
 1. Log in at [bitget.com](https://www.bitget.com)
-2. Switch to **Demo** mode (demo trading / paper) — your ~3M USDT demo balance is the right account
-3. Personal Center → **API Key Management** → Create
+2. Switch to **Demo** mode (demo trading / paper) — confirm the ~virtual USDT demo balance
+3. While still in Demo, open Personal Center → **API Key Management** → Create
 4. On **Select API key type**, choose **System-generated API key** (HMAC)
    - Do **not** pick User-generated / RSA — VIGIL signs with HMAC-SHA256 (`createHmac`)
 5. On **Create new API key**, set:
@@ -18,6 +22,10 @@ Official: [Bitget Demo Trading REST](https://www.bitget.com/api-doc/classic/demo
 6. Copy **API Key**, **Secret**, **Passphrase** once (secret shown once)
 
 KYC is required for Demo API per Bitget docs.
+
+### If you see `40099 exchange environment is incorrect`
+
+You created a **live** key (normal Account API page). Delete it for paper use, switch to **Demo**, create a new Demo key, then retry.
 
 ## 2. Put credentials in env (never commit)
 
