@@ -114,7 +114,15 @@ export function DashboardShell({
           </div>
           <div className="ml-auto flex items-center gap-2">
             {actions}
-            <Button variant="outline" size="icon" aria-label="Notifications">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Notifications"
+              title="No new alerts"
+              onClick={() => {
+                window.alert("No new alerts · paper vigil is quiet");
+              }}
+            >
               <Bell />
             </Button>
             <Button
@@ -128,7 +136,15 @@ export function DashboardShell({
             >
               <LogOut />
             </Button>
-            <Button variant="ink" size="icon" aria-label="Account">
+            <Button
+              variant="ink"
+              size="icon"
+              aria-label="Account"
+              title="Open settings"
+              onClick={() => {
+                window.location.href = "/dashboard/settings";
+              }}
+            >
               <CircleUserRound />
             </Button>
           </div>

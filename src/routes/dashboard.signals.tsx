@@ -36,7 +36,15 @@ function Signals() {
       title="Signal queue"
       kicker={`${signals.length} events · live tenant`}
       actions={
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const el = document.querySelector<HTMLInputElement>('input[placeholder*="Search"]');
+            el?.focus();
+            el?.select();
+          }}
+        >
           <Filter /> Filter
         </Button>
       }

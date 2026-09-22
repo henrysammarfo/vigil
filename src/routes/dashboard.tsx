@@ -1,6 +1,5 @@
-import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
-import { meFn, logoutFn } from "@/api/dashboard";
-import { Button } from "@/components/ui/button";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { meFn } from "@/api/dashboard";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
@@ -14,22 +13,5 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function DashboardLayout() {
-  const navigate = useNavigate();
-  return (
-    <div>
-      <div className="sr-only">
-        <Button
-          type="button"
-          onClick={async () => {
-            await logoutFn();
-            void navigate({ to: "/auth" });
-          }}
-        >
-          Sign out
-        </Button>
-        <Link to="/auth">Auth</Link>
-      </div>
-      <Outlet />
-    </div>
-  );
+  return <Outlet />;
 }
