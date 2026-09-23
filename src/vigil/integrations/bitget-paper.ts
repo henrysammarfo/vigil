@@ -1,5 +1,6 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { VigilError } from "../security/errors";
+import { resolveBitgetCredentials, type BitgetTenantCreds } from "../tenant/credentials";
 
 export type PaperOrderRequest = {
   symbol: string;
@@ -10,6 +11,8 @@ export type PaperOrderRequest = {
   /** Hedge-mode position side; defaults from buy→long / sell→short */
   posSide?: "long" | "short";
   category?: "USDT-FUTURES" | "SPOT" | "MARGIN" | "USDC-FUTURES" | "COIN-FUTURES";
+  /** Required — each workspace uses its own Demo keys */
+  tenantId: string;
 };
 
 export type PaperOrderResult = {
@@ -27,12 +30,7 @@ export type BitgetMarkQuote = {
   metricLabel: "observed";
 };
 
-function requirePaperConfig(): {
-  apiKey: string;
-  apiSecret: string;
-  passphrase: string;
-  baseUrl: string;
-} {
+function assertPaperEnvLock(): void {
   const paper = process.env["BITGET_PAPER"]?.trim().toLowerCase();
   if (paper !== "true" && paper !== "1" && paper !== "yes") {
     throw new VigilError(
@@ -41,22 +39,18 @@ function requirePaperConfig(): {
       403,
     );
   }
-  const apiKey = process.env["BITGET_API_KEY"]?.trim();
-  const apiSecret = process.env["BITGET_API_SECRET"]?.trim();
-  const passphrase = process.env["BITGET_PASSPHRASE"]?.trim();
-  if (!apiKey || !apiSecret || !passphrase) {
+}
+
+async function loadTenantPaperConfig(tenantId: string): Promise<BitgetTenantCreds> {
+  assertPaperEnvLock();
+  if (!tenantId?.trim()) {
     throw new VigilError(
       "BITGET_PAPER_NOT_CONFIGURED",
-      "Bitget Demo API credentials missing. Set BITGET_API_KEY, BITGET_API_SECRET, BITGET_PASSPHRASE with a Demo key.",
+      "tenantId required to resolve Bitget Demo credentials",
       503,
     );
   }
-  return {
-    apiKey,
-    apiSecret,
-    passphrase,
-    baseUrl: process.env["BITGET_BASE_URL"]?.trim() || "https://api.bitget.com",
-  };
+  return resolveBitgetCredentials(tenantId);
 }
 
 function sign(secret: string, prehash: string): string {
@@ -128,10 +122,10 @@ export function computeLinearPnl(input: {
 
 /**
  * Places a paper/demo order via Bitget UTA v3 REST.
- * Requires Demo API key + header paptrading: 1.
+ * Requires that tenant's Demo API key + header paptrading: 1.
  */
 export async function placeBitgetPaperOrder(req: PaperOrderRequest): Promise<PaperOrderResult> {
-  const cfg = requirePaperConfig();
+  const cfg = await loadTenantPaperConfig(req.tenantId);
   const timestamp = Date.now().toString();
   const path = "/api/v3/trade/place-order";
   const category = req.category ?? "USDT-FUTURES";
@@ -220,6 +214,7 @@ export async function placeBitgetPaperOrder(req: PaperOrderRequest): Promise<Pap
 
 /** Close an open paper position with opposite market side (Demo). */
 export async function closeBitgetPaperOrder(input: {
+  tenantId: string;
   symbol: string;
   openSide: "buy" | "sell";
   size: string;
@@ -227,6 +222,7 @@ export async function closeBitgetPaperOrder(input: {
   const closeSide = input.openSide === "buy" ? "sell" : "buy";
   const posSide = input.openSide === "buy" ? "long" : "short";
   return placeBitgetPaperOrder({
+    tenantId: input.tenantId,
     symbol: input.symbol,
     side: closeSide,
     size: input.size,

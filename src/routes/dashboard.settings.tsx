@@ -217,7 +217,11 @@ function Setting({
         <p className="text-sm font-bold uppercase">{name}</p>
         <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
       </div>
-      <Switch checked={on} disabled={locked} onCheckedChange={onChange} />
+      <Switch
+        checked={on}
+        disabled={Boolean(locked)}
+        onCheckedChange={onChange ?? (() => undefined)}
+      />
     </div>
   );
 }

@@ -104,6 +104,23 @@ export const apiCredentialRefs = pgTable(
   (t) => [uniqueIndex("cred_refs_tenant_provider_uidx").on(t.tenantId, t.provider)],
 );
 
+/** Per-tenant encrypted API credentials (AES-GCM). Never select plaintext for clients. */
+export const tenantSecrets = pgTable(
+  "tenant_secrets",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    provider: text("provider").notNull(),
+    ciphertext: text("ciphertext").notNull(),
+    keyHint: text("key_hint"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("tenant_secrets_tenant_provider_uidx").on(t.tenantId, t.provider)],
+);
+
 export const events = pgTable(
   "events",
   {

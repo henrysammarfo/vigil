@@ -396,6 +396,7 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
         const symbol = `${assessment.ticker}USDT`;
         // Fixed small size — never "use the rest of the balance"
         const order = await placeBitgetPaperOrder({
+          tenantId,
           symbol,
           side,
           size: fixedSize,
