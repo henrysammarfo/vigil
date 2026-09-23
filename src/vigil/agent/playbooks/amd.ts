@@ -13,6 +13,7 @@ export type AmdStrategyId =
   | "amd_fade_limit_rr2"
   | "amd_limit_tight_rr25"
   | "amd_limit_sl08_rr3"
+  | "amd_limit_sl14_rr3_hold24"
   | "amd_4h_limit_rr3";
 
 export type AmdPlaybookEntry = {
@@ -40,10 +41,32 @@ const VIP0_AMD_COSTS = {
  */
 export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
   {
+    id: "amd_limit_sl14_rr3_hold24",
+    label: "AMD limit · SL 1.4% · RR 1:3 · hold 24",
+    thesis:
+      "Refine-loop robust champ: shallow limit pullback (6bps), wider 1.4% stop, 3R target, longer hold — train&test both green after costs.",
+    config: {
+      allowlist: ["AMD"],
+      entryType: "limit",
+      limitOffsetBps: 6,
+      limitTimeoutBars: 3,
+      stopLossPct: 0.014,
+      riskReward: 3,
+      holdBars: 24,
+      minScore: 40,
+      directionMode: "with_move",
+      slippageBps: 10,
+      costs: { ...VIP0_AMD_COSTS },
+    },
+    labNotes:
+      "1H×480 refine ~10M trials · train≈+13.1 · OOS 10t 40% · net +52.9 · E[R]≈+0.70 · fees≈3.7 · spread≈0.37 (2026-09-23)",
+    rank: 1,
+  },
+  {
     id: "amd_limit_sl08_rr3",
     label: "AMD limit · SL 0.8% · RR 1:3",
     thesis:
-      "Robust lab champion: limit pullback on named semi catalyst, tight 0.8% stop, 3R target — train&test both green after costs.",
+      "High-WR robust alternate: tighter 0.8% stop, 3R target — better win rate / E[R], lower absolute PnL.",
     config: {
       allowlist: ["AMD"],
       entryType: "limit",
@@ -58,8 +81,8 @@ export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
       costs: { ...VIP0_AMD_COSTS },
     },
     labNotes:
-      "1H×480 WF · train≈+18.7 · OOS 8t 62.5% · net +33.8 · E[R]≈+0.91 · fees≈3.0 · spread≈0.30 (lab long 2026-09-23)",
-    rank: 1,
+      "1H×480 WF · train≈+18.7 · OOS 8t 62.5% · net +33.8 · E[R]≈+0.91 · fees≈3.0 (lab long 2026-09-23)",
+    rank: 2,
   },
   {
     id: "amd_limit_tight_rr25",
@@ -80,7 +103,7 @@ export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
     },
     labNotes:
       "1H×480 WF OOS 8t · 62.5% WR · net +32.1 · E[R]≈+0.69 · fees 3.02 (lab 2026-09-23)",
-    rank: 2,
+    rank: 3,
   },
   {
     id: "amd_4h_limit_rr3",
@@ -102,7 +125,7 @@ export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
     },
     labNotes:
       "4H×360 WF OOS 14t · net +96 · E[R]≈+1.10 · BUT train≈−37 — not robust yet",
-    rank: 3,
+    rank: 4,
   },
   {
     id: "amd_limit_pullback_rr2",
@@ -123,7 +146,7 @@ export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
       costs: { ...VIP0_AMD_COSTS },
     },
     labNotes: "1H×480 WF · solid baseline RR2 after costs",
-    rank: 4,
+    rank: 5,
   },
   {
     id: "amd_market_rr2",
@@ -141,7 +164,7 @@ export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
       costs: { ...VIP0_AMD_COSTS },
     },
     labNotes: "Underperforms limit after taker+AH spread drag",
-    rank: 5,
+    rank: 6,
   },
   {
     id: "amd_fade_limit_rr2",
@@ -159,7 +182,7 @@ export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
       costs: { ...VIP0_AMD_COSTS },
     },
     labNotes: "Lab: fade usually underperforms with_move on this AMD tape — contingency only",
-    rank: 6,
+    rank: 7,
   },
 ];
 
@@ -175,7 +198,8 @@ export function amdPlaybookSummary(): string[] {
 /** Memory seed lines for AMD (estimated from lab — cite in LLM priors). */
 export function amdMemorySeedLines(): string[] {
   return [
-    "memory[AMD]: robust champ = limit SL0.8% RR1:3 · train&test>0 after VIP0 fees+AH spread (OOS E[R]≈+0.91)",
+    "memory[AMD]: refine champ = limit SL1.4% RR1:3 hold24 lb6 · train&test>0 · OOS net≈+53 after VIP0 fees+AH spread",
+    "prior: high-WR alternate = limit SL0.8% RR1:3 · OOS E[R]≈+0.91 WR≈62% (prefer when needing discipline)",
     "prior: Bitget VIP0 futures · maker 0.02% · taker 0.06% · limit/TP=maker · market/stop=taker",
     "prior: AMD observed half-spread ~0.3–0.6 bps RTH; AH model ×3 in backtest",
     "prior: 4H limit RR3 prints big OOS but train red — do not promote without confirmation",
