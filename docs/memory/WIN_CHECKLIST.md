@@ -29,6 +29,7 @@
 - [x] Mark-to-exit / paper PnL scoreboard (wins-losses) + Investopedia entry rubric
 - [x] Rigorous walk-forward backtest + trade chart terminal (`/dashboard/terminal`)
 - [x] Fast smart agent memory (lessons + lesson-guard + cited priors)
+- [x] AMD strategy lab + ranked playbook (limit SL1% RR2.5 OOS E[R]+0.77)
 - [ ] Venice / DashScope key (optional failover)
 
 ## Next ship order

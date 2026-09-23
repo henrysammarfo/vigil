@@ -1,18 +1,17 @@
 # Session Log
 
-## 2026-09-23 — AMD backtest + SL/TP/R:R engine
+## 2026-09-23 — AMD strategy lab + playbook learning
 
-- Backtest now supports **market | limit** entry, **stop-loss (1R)**, **take-profit @ R:R**, R-multiples, unfilled-limit refusals, stop-first same-bar honesty.
-- **AMDUSDT 1H×480 walk-forward OOS:**
-  - Market SL 1.2% RR 1:2 → 10t · 40% WR · +10.67 · E[R]=+0.15 · PF 1.30 (SL×4 TP×2)
-  - Limit offset 12bps → 8t · 62.5% WR · +30.41 · E[R]=+0.55 · PF 2.38 · 2 unfilled
-  - 15m market RR 1:2.5 → OOS weak (−13.3) while train +26.6 — WF overfit catch
-- CLI: `bun run backtest -- --symbol AMDUSDT --entry limit --sl 0.012 --rr 2`
+- Grid sweep market|limit × chase|fade × SL × RR on AMDUSDT 1H×480 WF.
+- **Winner:** limit + with_move + SL **1.0%** + RR **1:2.5** → OOS 8t · 62.5% WR · E[R] **+0.77** · PF **2.92**.
+- Fade underperforms on this tape. 15m still overfits.
+- Codified in `playbooks/amd.ts` (rank #1) · Terminal AMD uses playbook · memory seeds cite lab when thin.
+- Signal: AMD named + MI300/semi catalyst boost. CLI: `bun run lab:amd`.
 
-## 2026-09-22 — Fast smart agent memory
+## 2026-09-23 — SL/TP/R:R engine + AMD first runs
 
-- `agent_lessons` + lesson-guard + cited priors. Terminal memory panel.
+- Market/limit · stop · take-profit · R-multiples. Earlier AMD limit RR2 was strong; lab refined to SL1%/RR2.5.
 
-## 2026-09-22 — Backtest + trade terminal / rubric / Demo spine
+## 2026-09-22 — Memory + terminal + Demo spine
 
-- Prior: walk-forward, mark-to-exit, Investopedia rubric, Tor AgentRouter, FENN.
+- agent_lessons · lesson-guard · mark-to-exit · FENN · Tor AgentRouter.
