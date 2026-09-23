@@ -4,7 +4,7 @@ import { mkdirSync } from "node:fs";
 
 const BASE = "http://127.0.0.1:3000";
 const OUT = "/opt/cursor/artifacts/page-shots";
-const EMAIL = "vigil-demo-s2@example.com";
+const EMAIL = "vigil-live-s2@example.com";
 const PASS = "VigilDemo2026!";
 mkdirSync(OUT, { recursive: true });
 
@@ -22,9 +22,10 @@ const dashPages = [
   ["08-dashboard-overview", "/dashboard/"],
   ["09-dashboard-signals", "/dashboard/signals"],
   ["10-dashboard-trades", "/dashboard/trades"],
-  ["11-dashboard-journal", "/dashboard/journal"],
-  ["12-dashboard-replay", "/dashboard/replay"],
-  ["13-dashboard-settings", "/dashboard/settings"],
+  ["11-dashboard-terminal", "/dashboard/terminal"],
+  ["12-dashboard-journal", "/dashboard/journal"],
+  ["13-dashboard-replay", "/dashboard/replay"],
+  ["14-dashboard-settings", "/dashboard/settings"],
 ] as const;
 
 async function shot(page: import("playwright").Page, name: string) {

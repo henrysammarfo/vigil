@@ -1,15 +1,16 @@
 # Session Log
 
-## 2026-09-23 — Refine harvest (~10M trials / 12 min)
+## 2026-09-23 — Full live UI pass + $100 paper book
 
-- Continuous refine done. **Best = bestRobust:** limit SL **1.4%** RR **1:3** hold **24** lb **6** · train +13.1 · OOS net **+52.9** · E[R] +0.70 · WR 40%.
-- Prior high-WR champ (SL0.8% RR3) kept as #2 — better WR/E[R], lower PnL.
-- Playbook + memory seeds updated.
+- Serious paper capital locked to **$100** (ignore Demo deposit). Equity on Overview + Trades.
+- Full page/button walkthrough: public + dashboard (terminal backtest, settings AMD allowlist, run agent, why-log).
+- Auth required `SESSION_SECRET` in env; pglite must be single-process (no dual open).
+- Agent run completed after-hours with observed signals; backtest runs from Terminal.
 
-## 2026-09-23 — Fees, spread, rebates in backtest
+## 2026-09-23 — Refine harvest (~10M trials)
 
-- VIP0 maker 0.02% / taker 0.06% · AH×3 half-spread · net PnL in metrics.
+- AMD #1 limit SL1.4% RR3 hold24; #2 high-WR SL0.8% RR3.
 
-## 2026-09-23 — AMD strategy lab + SL/TP engine
+## 2026-09-23 — Fees / spread / rebates
 
-- Long multi-TF lab · 4H high OOS but train red · 1H robust preferred.
+- VIP0 maker/taker + AH spread in backtest net PnL.

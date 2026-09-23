@@ -54,7 +54,20 @@ function Overview() {
             setRunMsg("Running…");
             const res = await runAgentFn();
             if (res.ok) {
-              setRunMsg(`Run ${res.result.status}: ${res.result.runId}`);
+              const r = res.result as {
+                status: string;
+                runId: string;
+                errorMessage?: string;
+                summary?: { processed?: number; papered?: number; refused?: number };
+              };
+              if (r.status === "failed") {
+                setRunMsg(`Run failed: ${r.runId}${r.errorMessage ? ` · ${r.errorMessage}` : ""}`);
+              } else {
+                const s = r.summary;
+                setRunMsg(
+                  `Run ${r.status}: ${r.runId}${s ? ` · processed ${s.processed ?? 0} · paper ${s.papered ?? 0} · refuse ${s.refused ?? 0}` : ""}`,
+                );
+              }
               await qc.invalidateQueries({ queryKey: ["vigil"] });
             } else {
               setRunMsg(`${res.code}: ${res.message}`);

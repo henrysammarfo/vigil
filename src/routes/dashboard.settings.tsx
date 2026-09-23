@@ -61,7 +61,7 @@ function SettingsPage() {
     <DashboardShell title="Settings" kicker="FENN workspace policy">
       <div className="grid gap-4 xl:grid-cols-2">
         <Panel title="Execution policy" meta="Locked to paper">
-          <Setting name="Paper trading" desc="Required. Live execution is unavailable." on locked />
+          <Setting name="Paper trading" desc="Paper = live training on the $100 book. Demo deposit ignored." on locked />
           <Setting
             name="FENN refuse-by-default"
             desc="Empty allowlist → NO cards. Headline alone is never a fill."
@@ -131,7 +131,7 @@ function SettingsPage() {
             }}
           />
           <label className="mt-5 block text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-            Max position USD (risk cap, not spray size)
+            Max position USD (risk cap on the $100 book)
           </label>
           <Input
             type="number"
