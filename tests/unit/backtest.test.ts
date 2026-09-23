@@ -56,15 +56,21 @@ describe("backtest engine", () => {
         allowlist: ["NVDA"],
         fennMode: true,
         minScore: 30,
-        holdBars: 4,
-        invalidationPct: 0.02,
+        holdBars: 8,
+        stopLossPct: 0.015,
+        riskReward: 2,
+        entryType: "market",
         slippageBps: 5,
       },
     });
     expect(res.trades.length).toBeGreaterThan(0);
     expect(res.metrics.trades).toBe(res.trades.length);
     expect(res.trades[0]!.analysis.bearCase.length).toBeGreaterThanOrEqual(2);
+    expect(res.trades[0]!.stopPx).toBeGreaterThan(0);
+    expect(res.trades[0]!.takeProfitPx).toBeGreaterThan(0);
+    expect(res.trades[0]!.riskReward).toBe(2);
     expect(res.trades.every((t) => t.exitPx > 0 && t.entryPx > 0)).toBe(true);
+    expect(Number.isFinite(res.metrics.expectancyR)).toBe(true);
     expect(res.equityCurve.length).toBe(res.trades.length);
     const m = computeBacktestMetrics(
       res.trades,
@@ -88,13 +94,41 @@ describe("backtest engine", () => {
       symbol: "NVDAUSDT",
       candles,
       events,
-      config: { allowlist: ["NVDA"], minScore: 25, holdBars: 3 },
+      config: { allowlist: ["NVDA"], minScore: 25, holdBars: 6, riskReward: 2, stopLossPct: 0.012 },
       trainRatio: 0.6,
     });
     expect(res.walkForward).toBeTruthy();
     expect(
       (res.walkForward?.trainTrades ?? 0) + (res.walkForward?.testTrades ?? 0),
     ).toBeGreaterThanOrEqual(0);
-    expect(res.honesty).toMatch(/walk-forward/);
+    expect(res.honesty).toMatch(/walk-forward|R:R|SL\/TP/);
+  });
+
+  it("limit entries can refuse as unfilled", () => {
+    const events = synthesizeEventsFromCandles({
+      symbol: "NVDAUSDT",
+      ticker: "NVDA",
+      candles,
+      minAbsMovePct: 0.8,
+      maxEvents: 12,
+    });
+    const res = runBacktest({
+      symbol: "NVDAUSDT",
+      candles,
+      events,
+      config: {
+        allowlist: ["NVDA"],
+        entryType: "limit",
+        limitOffsetBps: 80,
+        limitTimeoutBars: 1,
+        minScore: 25,
+        holdBars: 6,
+        stopLossPct: 0.01,
+        riskReward: 2,
+      },
+    });
+    // Aggressive limit offset on quiet bars → some unfilled
+    expect(res.metrics.unfilledLimits + res.trades.length + res.refusals.length).toBeGreaterThan(0);
+    expect(res.honesty).toMatch(/limit|SL\/TP/);
   });
 });

@@ -25,13 +25,21 @@ export type BacktestTrade = {
   symbol: string;
   side: "buy" | "sell";
   qty: number;
+  entryType: "market" | "limit";
   entryTs: number;
   entryPx: number;
+  stopPx: number;
+  takeProfitPx: number;
+  riskPx: number;
+  rewardPx: number;
+  riskReward: number;
   exitTs: number;
   exitPx: number;
   barsHeld: number;
   realizedPnl: number;
-  exitReason: "hold_bars" | "invalidation" | "end_of_data";
+  /** PnL in units of initial risk (R-multiples). */
+  rMultiple: number;
+  exitReason: "stop_loss" | "take_profit" | "hold_bars" | "invalidation" | "end_of_data";
   score: number;
   headline: string;
   analysis: EntryAnalysis;
@@ -54,14 +62,20 @@ export type BacktestMetrics = {
   winRate: number;
   profitFactor: number | null;
   expectancy: number;
+  /** Expectancy in R-multiples (risk units). */
+  expectancyR: number;
   avgWin: number;
   avgLoss: number;
+  avgR: number;
   maxDrawdown: number;
   grossProfit: number;
   grossLoss: number;
   totalPnl: number;
+  stopExits: number;
+  tpExits: number;
   refusalCount: number;
   refusalRate: number;
+  unfilledLimits: number;
   sharpeLike: number | null;
   avgBarsHeld: number;
   metricLabel: "estimated";
@@ -73,9 +87,19 @@ export type BacktestConfig = {
   fixedPaperSize: number;
   minScore: number;
   holdBars: number;
-  /** Relative adverse move that kills the trade (e.g. 0.012 = 1.2%). */
+  /** Stop-loss distance from entry (e.g. 0.012 = 1.2%). Also used as 1R. */
+  stopLossPct: number;
+  /** Take-profit as multiple of risk (R:R). 2 = risk 1 to make 2. */
+  riskReward: number;
+  /** @deprecated alias — maps to stopLossPct when stopLossPct unset in partial merges */
   invalidationPct: number;
-  /** Applied against entry as estimated after-hours slippage (bps). */
+  /** market = fill at signal close + slippage; limit = wait for pullback fill */
+  entryType: "market" | "limit";
+  /** Limit offset from signal close toward better price (bps). */
+  limitOffsetBps: number;
+  /** Bars to wait for limit fill before cancelling. */
+  limitTimeoutBars: number;
+  /** Applied on market fills and on stop/TP slippage (estimated). */
   slippageBps: number;
   seed: number;
 };
@@ -99,19 +123,80 @@ export type BacktestResult = {
 };
 
 export const DEFAULT_BACKTEST_CONFIG: BacktestConfig = {
-  allowlist: ["NVDA", "AAPL", "TSLA"],
+  allowlist: ["NVDA", "AAPL", "TSLA", "AMD"],
   fennMode: true,
   fixedPaperSize: 1,
   minScore: 40,
-  holdBars: 8,
-  invalidationPct: 0.015,
+  holdBars: 12,
+  stopLossPct: 0.012,
+  riskReward: 2,
+  invalidationPct: 0.012,
+  entryType: "market",
+  limitOffsetBps: 12,
+  limitTimeoutBars: 3,
   slippageBps: 8,
   seed: 42,
 };
 
+function mergeConfig(partial?: Partial<BacktestConfig>): BacktestConfig {
+  const cfg = { ...DEFAULT_BACKTEST_CONFIG, ...partial };
+  // Keep invalidationPct in sync when only one stop field is passed
+  if (partial?.stopLossPct != null && partial.invalidationPct == null) {
+    cfg.invalidationPct = partial.stopLossPct;
+  }
+  if (partial?.invalidationPct != null && partial.stopLossPct == null) {
+    cfg.stopLossPct = partial.invalidationPct;
+  }
+  return cfg;
+}
+
 function applySlippage(px: number, side: "buy" | "sell", bps: number): number {
   const m = bps / 10_000;
   return side === "buy" ? px * (1 + m) : px * (1 - m);
+}
+
+function stopPrice(entry: number, side: "buy" | "sell", stopPct: number): number {
+  return side === "buy" ? entry * (1 - stopPct) : entry * (1 + stopPct);
+}
+
+function takeProfitPrice(entry: number, side: "buy" | "sell", stopPct: number, rr: number): number {
+  const risk = entry * stopPct;
+  return side === "buy" ? entry + risk * rr : entry - risk * rr;
+}
+
+function limitTarget(signalClose: number, side: "buy" | "sell", offsetBps: number): number {
+  const m = offsetBps / 10_000;
+  // Better price: buy lower, sell higher
+  return side === "buy" ? signalClose * (1 - m) : signalClose * (1 + m);
+}
+
+/** Conservative same-bar conflict: stop wins over TP (honest worst-case). */
+function barHitsLevels(input: {
+  side: "buy" | "sell";
+  candle: Candle;
+  stopPx: number;
+  tpPx: number;
+}): "stop_loss" | "take_profit" | null {
+  const { side, candle, stopPx, tpPx } = input;
+  if (side === "buy") {
+    const hitStop = candle.low <= stopPx;
+    const hitTp = candle.high >= tpPx;
+    if (hitStop && hitTp) return "stop_loss";
+    if (hitStop) return "stop_loss";
+    if (hitTp) return "take_profit";
+    return null;
+  }
+  const hitStop = candle.high >= stopPx;
+  const hitTp = candle.low <= tpPx;
+  if (hitStop && hitTp) return "stop_loss";
+  if (hitStop) return "stop_loss";
+  if (hitTp) return "take_profit";
+  return null;
+}
+
+function barTouchesLimit(side: "buy" | "sell", candle: Candle, limitPx: number): boolean {
+  if (side === "buy") return candle.low <= limitPx;
+  return candle.high >= limitPx;
 }
 
 function moveAt(candles: Candle[], idx: number, lookback: number): number {
@@ -150,11 +235,13 @@ function buildAnalysis(input: {
   headline: string;
   side: "buy" | "sell";
   movePct: number;
-  invalidationPct: number;
+  stopLossPct: number;
+  riskReward: number;
+  entryType: "market" | "limit";
 }): EntryAnalysis {
   const dir = input.side === "buy" ? "long" : "short";
   return {
-    thesis: `${input.ticker} ${dir} on catalyst · move ${input.movePct.toFixed(2)}%`,
+    thesis: `${input.ticker} ${dir} on catalyst · move ${input.movePct.toFixed(2)}% · ${input.entryType} · R:R 1:${input.riskReward}`,
     bullCase:
       input.side === "buy"
         ? [`Catalyst: ${input.headline.slice(0, 120)}`, `Observed move +${Math.abs(input.movePct).toFixed(2)}%`]
@@ -165,15 +252,15 @@ function buildAnalysis(input: {
       "Gap risk into next session",
     ],
     invalidation: [
-      `Adverse move ≥ ${(input.invalidationPct * 100).toFixed(2)}% from entry`,
-      "Catalyst reversed in subsequent headlines",
+      `Stop-loss @ ${(input.stopLossPct * 100).toFixed(2)}% from entry (1R)`,
+      `Take-profit @ ${input.riskReward}R or time-stop`,
     ],
     biasChecks: [
       "Wrote opposing (bear) case before entry",
       "Not revenge/FOMO — score gate + allowlist only",
-      "Sunk-cost ignored — fixed size, pre-committed exit",
+      "Sunk-cost ignored — fixed size, pre-committed SL/TP",
     ],
-    sessionRisk: "Backtest assumes closed-window / AH slippage bps applied at entry+exit",
+    sessionRisk: `Backtest ${input.entryType} entry · SL/TP with AH slippage bps · conservative stop-first on same-bar`,
     sizeRule: "fixed paper size — never spray balance",
     metricLabel: "estimated",
   };
@@ -190,10 +277,15 @@ export function computeBacktestMetrics(
   let flats = 0;
   let grossProfit = 0;
   let grossLoss = 0;
-  let bars = 0;
+  let stopExits = 0;
+  let tpExits = 0;
+  let unfilledLimits = 0;
   const pnls = trades.map((t) => t.realizedPnl);
-  for (const p of pnls) {
-    bars += 1;
+  const rs = trades.map((t) => t.rMultiple);
+  for (const t of trades) {
+    if (t.exitReason === "stop_loss" || t.exitReason === "invalidation") stopExits += 1;
+    if (t.exitReason === "take_profit") tpExits += 1;
+    const p = t.realizedPnl;
     if (Math.abs(p) < 1e-10) flats += 1;
     else if (p > 0) {
       wins += 1;
@@ -203,11 +295,15 @@ export function computeBacktestMetrics(
       grossLoss += Math.abs(p);
     }
   }
+  for (const r of refusals) {
+    if (r.gate === "limit-unfilled") unfilledLimits += 1;
+  }
   const totalPnl = pnls.reduce((a, b) => a + b, 0);
-  const n = trades.length || 1;
   const avgWin = wins ? grossProfit / wins : 0;
   const avgLoss = losses ? grossLoss / losses : 0;
   const expectancy = trades.length ? totalPnl / trades.length : 0;
+  const avgR = rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : 0;
+  const expectancyR = avgR;
   const winRate = trades.length ? wins / trades.length : 0;
   const profitFactor =
     grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Number.POSITIVE_INFINITY : null;
@@ -215,7 +311,6 @@ export function computeBacktestMetrics(
     ? Math.max(...equityCurve.map((e) => e.drawdown))
     : 0;
 
-  // Sharpe-like on per-trade PnL (not annualized) — honesty: estimated
   let sharpeLike: number | null = null;
   if (pnls.length >= 2) {
     const mean = totalPnl / pnls.length;
@@ -232,14 +327,19 @@ export function computeBacktestMetrics(
     winRate,
     profitFactor: profitFactor === Number.POSITIVE_INFINITY ? null : profitFactor,
     expectancy,
+    expectancyR,
     avgWin,
     avgLoss,
+    avgR,
     maxDrawdown,
     grossProfit,
     grossLoss,
     totalPnl,
+    stopExits,
+    tpExits,
     refusalCount: refusals.length,
     refusalRate: eventCount ? refusals.length / eventCount : 0,
+    unfilledLimits,
     sharpeLike,
     avgBarsHeld: trades.length ? trades.reduce((a, t) => a + t.barsHeld, 0) / trades.length : 0,
     metricLabel: "estimated",
@@ -252,7 +352,7 @@ export function runBacktest(input: {
   events: BacktestEvent[];
   config?: Partial<BacktestConfig>;
 }): BacktestResult {
-  const config: BacktestConfig = { ...DEFAULT_BACKTEST_CONFIG, ...input.config };
+  const config = mergeConfig(input.config);
   const candles = [...input.candles].sort((a, b) => a.ts - b.ts);
   const events = [...input.events]
     .filter((e) => e.symbol.toUpperCase() === input.symbol.toUpperCase())
@@ -263,6 +363,8 @@ export function runBacktest(input: {
   const paperedTickers = new Set<string>();
   const sidesByTicker = new Map<string, "buy" | "sell">();
   const qty = Number(fixedPaperQuantity(config.fixedPaperSize));
+  const stopPct = config.stopLossPct > 0 ? config.stopLossPct : config.invalidationPct;
+  const rr = Math.max(0.5, config.riskReward);
 
   let equity = 0;
   let peak = 0;
@@ -342,7 +444,9 @@ export function runBacktest(input: {
       headline: ev.headline,
       side,
       movePct,
-      invalidationPct: config.invalidationPct,
+      stopLossPct: stopPct,
+      riskReward: rr,
+      entryType: config.entryType,
     });
     if (!analysisCompleteForPaper(analysis)) {
       refusals.push({
@@ -355,41 +459,103 @@ export function runBacktest(input: {
       continue;
     }
 
-    const entryRaw = candles[idx]!.close;
-    const entryPx = applySlippage(entryRaw, side, config.slippageBps);
-    let exitIdx = Math.min(candles.length - 1, idx + config.holdBars);
+    const signalClose = candles[idx]!.close;
+    let entryIdx = idx;
+    let entryPx: number;
+    let entryType = config.entryType;
+
+    if (config.entryType === "limit") {
+      const limitPx = limitTarget(signalClose, side, config.limitOffsetBps);
+      let filled = false;
+      const lastTry = Math.min(candles.length - 2, idx + config.limitTimeoutBars);
+      for (let j = idx; j <= lastTry; j++) {
+        if (barTouchesLimit(side, candles[j]!, limitPx)) {
+          entryIdx = j;
+          entryPx = limitPx; // limit fill at limit price (no adverse slip on limit)
+          filled = true;
+          break;
+        }
+      }
+      if (!filled) {
+        refusals.push({
+          eventId: ev.id,
+          ts: ev.ts,
+          ticker: ev.ticker,
+          reason: `Limit ${limitPx.toFixed(4)} unfilled in ${config.limitTimeoutBars} bars`,
+          gate: "limit-unfilled",
+        });
+        continue;
+      }
+    } else {
+      entryPx = applySlippage(signalClose, side, config.slippageBps);
+      entryType = "market";
+    }
+
+    const stopPx = stopPrice(entryPx, side, stopPct);
+    const tpPx = takeProfitPrice(entryPx, side, stopPct, rr);
+    const riskPx = Math.abs(entryPx - stopPx);
+    const rewardPx = Math.abs(tpPx - entryPx);
+
+    let exitIdx = Math.min(candles.length - 1, entryIdx + config.holdBars);
     let exitReason: BacktestTrade["exitReason"] = "hold_bars";
-    if (exitIdx === candles.length - 1 && idx + config.holdBars > exitIdx) {
+    let exitPx = candles[exitIdx]!.close;
+    if (exitIdx === candles.length - 1 && entryIdx + config.holdBars > exitIdx) {
       exitReason = "end_of_data";
     }
 
-    for (let j = idx + 1; j <= exitIdx; j++) {
-      const px = candles[j]!.close;
-      const adverse =
-        side === "buy" ? (entryPx - px) / entryPx : (px - entryPx) / entryPx;
-      if (adverse >= config.invalidationPct) {
+    for (let j = entryIdx + 1; j <= Math.min(candles.length - 1, entryIdx + config.holdBars); j++) {
+      const hit = barHitsLevels({
+        side,
+        candle: candles[j]!,
+        stopPx,
+        tpPx,
+      });
+      if (hit === "stop_loss") {
         exitIdx = j;
-        exitReason = "invalidation";
+        exitReason = "stop_loss";
+        // Slippage through stop (estimated)
+        exitPx = applySlippage(stopPx, side === "buy" ? "sell" : "buy", config.slippageBps);
         break;
       }
+      if (hit === "take_profit") {
+        exitIdx = j;
+        exitReason = "take_profit";
+        exitPx = tpPx; // limit-like TP fill
+        break;
+      }
+      exitIdx = j;
+      exitPx = candles[j]!.close;
     }
 
-    const exitRaw = candles[exitIdx]!.close;
-    const exitSide = side === "buy" ? "sell" : "buy";
-    const exitPx = applySlippage(exitRaw, exitSide, config.slippageBps);
+    if (exitReason === "hold_bars" || exitReason === "end_of_data") {
+      exitPx = applySlippage(
+        candles[exitIdx]!.close,
+        side === "buy" ? "sell" : "buy",
+        config.slippageBps,
+      );
+    }
+
     const realizedPnl = computeLinearPnl({ side, entry: entryPx, exit: exitPx, qty });
+    const rMultiple = riskPx > 0 ? ((side === "buy" ? exitPx - entryPx : entryPx - exitPx) / riskPx) : 0;
 
     const trade: BacktestTrade = {
       id: `bt_${ev.id}`,
       symbol: input.symbol.toUpperCase(),
       side,
       qty,
-      entryTs: candles[idx]!.ts,
+      entryType,
+      entryTs: candles[entryIdx]!.ts,
       entryPx,
+      stopPx,
+      takeProfitPx: tpPx,
+      riskPx,
+      rewardPx,
+      riskReward: rr,
       exitTs: candles[exitIdx]!.ts,
       exitPx,
-      barsHeld: exitIdx - idx,
+      barsHeld: exitIdx - entryIdx,
       realizedPnl,
+      rMultiple,
       exitReason,
       score,
       headline: ev.headline,
@@ -397,7 +563,7 @@ export function runBacktest(input: {
       metricLabel: "estimated",
     };
     trades.push(trade);
-    // Atomic entry→exit in this engine; clear so later catalysts can re-enter (mirrors new agent run).
+
     paperedTickers.add(ev.ticker.toUpperCase());
     sidesByTicker.set(ev.ticker.toUpperCase(), side);
     paperedTickers.delete(ev.ticker.toUpperCase());
@@ -412,9 +578,6 @@ export function runBacktest(input: {
     });
   }
 
-  // Reset one-side gate between "cycles" is intentional for single-run backtest:
-  // we keep one-side for the whole window to mirror FENN honesty.
-
   const metrics = computeBacktestMetrics(trades, refusals, equityCurve, events.length);
 
   return {
@@ -427,7 +590,7 @@ export function runBacktest(input: {
     equityCurve,
     metrics,
     honesty:
-      "paper-only backtest · candles observed · PnL estimated with slippage · FENN refuse-by-default · not financial advice",
+      "paper-only backtest · candles observed · market/limit + SL/TP R:R · PnL estimated with slippage · stop-first same-bar · FENN · not financial advice",
   };
 }
 

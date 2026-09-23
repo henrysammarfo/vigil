@@ -31,7 +31,7 @@ export const Route = createFileRoute("/dashboard/terminal")({
   component: Terminal,
 });
 
-const SYMBOLS = ["NVDAUSDT", "AAPLUSDT", "TSLAUSDT"] as const;
+const SYMBOLS = ["AMDUSDT", "NVDAUSDT", "AAPLUSDT", "TSLAUSDT"] as const;
 
 function fmt(n: number | null | undefined, d = 4): string {
   if (n == null || !Number.isFinite(n)) return "—";
@@ -211,15 +211,31 @@ function Terminal() {
         data: {
           symbol,
           granularity: granularity === "15m" ? "1H" : granularity,
-          lookbackBars: 360,
+          lookbackBars: 480,
           minAbsMovePct: 1.0,
           minScore: 40,
-          holdBars: 8,
+          holdBars: 12,
+          stopLossPct: 0.012,
+          riskReward: 2,
+          entryType: "market",
           walkForward: true,
           allowlist: [symbol.replace(/USDT$/, "")],
         },
       })) as
-        | { ok: true; result: NonNullable<typeof backtest> & { candleCount: number; eventCount: number } }
+        | {
+            ok: true;
+            result: NonNullable<typeof backtest> & {
+              candleCount: number;
+              eventCount: number;
+              lessonsWritten?: number;
+              metrics: {
+                expectancyR?: number;
+                avgR?: number;
+                stopExits?: number;
+                tpExits?: number;
+              };
+            };
+          }
         | { ok: false; code: string; message: string };
       if (!res.ok) {
         setBtMsg(`${res.code}: ${res.message}`);
