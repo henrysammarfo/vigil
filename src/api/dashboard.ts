@@ -488,7 +488,7 @@ export const runBacktestFn = createServerFn({ method: "POST" })
         afterHours: z.boolean().default(true),
         allowlist: z.array(z.string().min(1).max(16)).max(20).optional(),
         walkForward: z.boolean().default(true),
-        /** When true and symbol is AMDUSDT, apply ranked playbook defaults */
+        /** Apply ranked high-WR playbook for AMD/NVDA/AAPL/TSLA */
         usePlaybook: z.boolean().default(false),
       })
       .parse(data),
@@ -510,18 +510,19 @@ export const runBacktestFn = createServerFn({ method: "POST" })
         runWalkForwardBacktest,
         synthesizeEventsFromCandles,
       } = await import("../vigil/agent/backtest");
+      const { playbookForSymbol } = await import("../vigil/agent/playbooks/index");
 
       const symbol = data.symbol.toUpperCase();
       const ticker = symbol.replace(/USDT$/, "");
-      let playbookPatch: Record<string, unknown> = {};
-      if (data.usePlaybook && ticker === "AMD") {
-        const { bestAmdConfig } = await import("../vigil/agent/playbooks/amd");
-        playbookPatch = bestAmdConfig();
-      }
+      const playbook = data.usePlaybook ? playbookForSymbol(symbol) : null;
+      const granularity = playbook?.granularity ?? data.granularity;
+      const lookbackBars = playbook?.lookbackBars ?? data.lookbackBars;
+      const minAbsMovePct = playbook?.minAbsMovePct ?? data.minAbsMovePct;
+
       const candles = await fetchBitgetHistoryCandles({
         symbol,
-        granularity: data.granularity,
-        lookbackBars: data.lookbackBars,
+        granularity,
+        lookbackBars,
       });
       if (candles.length < 40) {
         return {
@@ -535,8 +536,8 @@ export const runBacktestFn = createServerFn({ method: "POST" })
         symbol,
         ticker,
         candles,
-        minAbsMovePct: data.minAbsMovePct,
-        maxEvents: 48,
+        minAbsMovePct,
+        maxEvents: 72,
       });
       const allowlist = (data.allowlist?.length ? data.allowlist : [ticker]).map((t) =>
         t.toUpperCase(),
@@ -549,9 +550,9 @@ export const runBacktestFn = createServerFn({ method: "POST" })
         makerRebateRate: data.makerRebateRate,
         afterHours: data.afterHours,
       };
-      const config = data.usePlaybook && ticker === "AMD"
+      const config = playbook
         ? {
-            ...playbookPatch,
+            ...playbook.config,
             allowlist,
             fennMode: true as const,
           }
@@ -607,6 +608,17 @@ export const runBacktestFn = createServerFn({ method: "POST" })
           honesty: result.honesty,
           config: result.config,
           lessonsWritten: learned.written,
+          playbook: playbook
+            ? {
+                ticker: playbook.ticker,
+                label: playbook.label,
+                oosWr: playbook.oosWr,
+                oosTrades: playbook.oosTrades,
+                robust: playbook.robust,
+                granularity: playbook.granularity,
+                labNotes: playbook.labNotes,
+              }
+            : null,
         },
       };
     } catch (error) {

@@ -1,16 +1,11 @@
 # Session Log
 
-## 2026-09-23 — Full live UI pass + $100 paper book
+## 2026-09-23 — ≥80% WR playbooks all pairs
 
-- Serious paper capital locked to **$100** (ignore Demo deposit). Equity on Overview + Trades.
-- Full page/button walkthrough: public + dashboard (terminal backtest, settings AMD allowlist, run agent, why-log).
-- Auth required `SESSION_SECRET` in env; pglite must be single-process (no dual open).
-- Agent run completed after-hours with observed signals; backtest runs from Terminal.
+- High-WR lab across AMD/NVDA/AAPL/TSLA (VIP0 fees+AH spread).
+- Champs locked: NVDA 90.9% robust · AAPL 83.3% robust · TSLA ~80–83% robust · AMD 80% selective (train red).
+- Terminal Run backtest uses `usePlaybook` for every pair (TF + minMove + SL/RR).
 
-## 2026-09-23 — Refine harvest (~10M trials)
+## 2026-09-23 — TradingView candles + $100 book
 
-- AMD #1 limit SL1.4% RR3 hold24; #2 high-WR SL0.8% RR3.
-
-## 2026-09-23 — Fees / spread / rebates
-
-- VIP0 maker/taker + AH spread in backtest net PnL.
+- lightweight-charts OHLC+volume+markers; paper bankroll $100.

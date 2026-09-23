@@ -232,17 +232,10 @@ function Terminal() {
       const res = (await runBacktestFn({
         data: {
           symbol,
-          granularity: granularity === "15m" ? "1H" : granularity,
+          granularity,
           lookbackBars: 480,
-          minAbsMovePct: 1.0,
-          minScore: 40,
-          holdBars: 12,
-          stopLossPct: 0.012,
-          riskReward: 2,
-          entryType: symbol.startsWith("AMD") ? "limit" : "market",
-          directionMode: "with_move",
           walkForward: true,
-          usePlaybook: symbol.startsWith("AMD"),
+          usePlaybook: true,
           allowlist: [symbol.replace(/USDT$/, "")],
         },
       })) as
@@ -252,6 +245,14 @@ function Terminal() {
               candleCount: number;
               eventCount: number;
               lessonsWritten?: number;
+              playbook?: {
+                ticker: string;
+                label: string;
+                oosWr: number;
+                oosTrades: number;
+                robust: boolean;
+                labNotes: string;
+              } | null;
               metrics: {
                 expectancyR?: number;
                 avgR?: number;
@@ -267,12 +268,10 @@ function Terminal() {
       }
       setBacktest(res.result);
       const m = res.result.metrics;
-      const learned =
-        "lessonsWritten" in res.result
-          ? Number((res.result as { lessonsWritten?: number }).lessonsWritten ?? 0)
-          : 0;
+      const pb = res.result.playbook;
+      const learned = Number(res.result.lessonsWritten ?? 0);
       setBtMsg(
-        `OOS ${m.trades} trades · W${m.wins}/L${m.losses} · PnL ${fmt(m.totalPnl)} · DD ${fmt(m.maxDrawdown)} · memory +${learned}`,
+        `${pb ? `Playbook ${pb.ticker} (lab ${pb.oosWr}% WR) · ` : ""}OOS ${m.trades}t · W${m.wins}/L${m.losses} · ${(m.winRate * 100).toFixed(0)}% · PnL ${fmt(m.totalPnl)} · memory +${learned}`,
       );
       await qc.invalidateQueries({ queryKey: ["vigil", "memory"] });
     } finally {

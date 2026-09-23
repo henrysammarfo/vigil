@@ -312,12 +312,15 @@ export async function buildMemoryDigest(input: {
   };
   digest.blockLines = formatMemoryBlock(digest);
 
-  // Inject playbook seeds when AMD memory is thin (estimated lab priors)
-  if (digest.ticker === "AMD" && closed.length < 5) {
+  // Inject high-WR playbook seeds when ticker memory is thin
+  if (closed.length < 5) {
     try {
-      const { amdMemorySeedLines } = await import("./playbooks/amd");
-      digest.blockLines = [...digest.blockLines, ...amdMemorySeedLines()].slice(0, 8);
-      if (digest.metricLabel !== "observed") digest.metricLabel = "estimated";
+      const { memorySeedLinesForTicker } = await import("./playbooks/index");
+      const seeds = memorySeedLinesForTicker(digest.ticker);
+      if (seeds.length) {
+        digest.blockLines = [...digest.blockLines, ...seeds].slice(0, 8);
+        if (digest.metricLabel !== "observed") digest.metricLabel = "estimated";
+      }
     } catch {
       // playbook optional
     }
