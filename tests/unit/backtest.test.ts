@@ -69,6 +69,9 @@ describe("backtest engine", () => {
     expect(res.trades[0]!.stopPx).toBeGreaterThan(0);
     expect(res.trades[0]!.takeProfitPx).toBeGreaterThan(0);
     expect(res.trades[0]!.riskReward).toBe(2);
+    expect(res.trades[0]!.feesPaid).toBeGreaterThanOrEqual(0);
+    expect(res.trades[0]!.realizedPnl).toBeLessThanOrEqual(res.trades[0]!.grossPnl + 1e-9);
+    expect(res.metrics.totalFees).toBeGreaterThanOrEqual(0);
     expect(res.trades.every((t) => t.exitPx > 0 && t.entryPx > 0)).toBe(true);
     expect(Number.isFinite(res.metrics.expectancyR)).toBe(true);
     expect(res.equityCurve.length).toBe(res.trades.length);

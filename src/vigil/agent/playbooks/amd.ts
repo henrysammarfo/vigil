@@ -5,6 +5,7 @@
 
 import type { BacktestConfig } from "../backtest";
 import { DEFAULT_BACKTEST_CONFIG } from "../backtest";
+import { BITGET_VIP0_FUTURES_COSTS } from "../trading-costs";
 
 export type AmdStrategyId =
   | "amd_limit_pullback_rr2"
@@ -43,9 +44,18 @@ export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
       minScore: 40,
       directionMode: "with_move",
       slippageBps: 8,
+      costs: {
+        ...BITGET_VIP0_FUTURES_COSTS,
+        /** Observed AMD RTH half-spread ~0.3 bps; AH×3 in engine */
+        halfSpreadBps: 0.35,
+        afterHours: true,
+        makerFeeRate: 0.0002,
+        takerFeeRate: 0.0006,
+        makerRebateRate: 0,
+      },
     },
     labNotes:
-      "1H×480 WF OOS 8t · 62.5% WR · E[R]≈+0.77 · PF≈2.92 · train≈+33 (lab 2026-09-23)",
+      "1H×480 WF OOS 8t · 62.5% WR · E[R]≈+0.77 · PF≈2.92 · train≈+33 · net of VIP0 fees+AH spread (lab 2026-09-23)",
     rank: 1,
   },
   {
@@ -118,10 +128,11 @@ export function amdPlaybookSummary(): string[] {
 /** Memory seed lines for AMD (estimated from lab — cite in LLM priors). */
 export function amdMemorySeedLines(): string[] {
   return [
-    "memory[AMD]: best lab = limit pullback SL1.0% RR1:2.5 (OOS E[R]≈+0.77 PF≈2.9)",
-    "prior: backtest_win AMD limit · MI300/data-center catalyst · TP@2.5R [backtest]",
+    "memory[AMD]: best lab = limit pullback SL1.0% RR1:2.5 net of VIP0 fees+AH spread (OOS E[R]≈+0.77)",
+    "prior: Bitget VIP0 futures · maker 0.02% · taker 0.06% · limit/TP=maker · market/stop=taker",
+    "prior: AMD observed half-spread ~0.3–0.6 bps RTH; AH model ×3 in backtest",
+    "prior: backtest_win AMD limit · MI300/data-center catalyst · TP@2.5R after costs [backtest]",
     "prior: with_move >> fade_move on current AMD 1H tape [backtest]",
-    "prior: backtest_loss AMD 15m market chase · train+/test− overfit — avoid 15m spray [backtest]",
-    "prior: unfilled limits are features (discipline) not bugs",
+    "prior: unfilled limits save taker+spread — discipline not a bug",
   ];
 }

@@ -481,6 +481,11 @@ export const runBacktestFn = createServerFn({ method: "POST" })
         limitOffsetBps: z.number().int().min(0).max(100).default(12),
         limitTimeoutBars: z.number().int().min(1).max(12).default(3),
         slippageBps: z.number().int().min(0).max(50).default(8),
+        halfSpreadBps: z.number().min(0).max(50).default(0.5),
+        makerFeeRate: z.number().min(0).max(0.01).default(0.0002),
+        takerFeeRate: z.number().min(0).max(0.01).default(0.0006),
+        makerRebateRate: z.number().min(0).max(0.01).default(0),
+        afterHours: z.boolean().default(true),
         allowlist: z.array(z.string().min(1).max(16)).max(20).optional(),
         walkForward: z.boolean().default(true),
         /** When true and symbol is AMDUSDT, apply ranked playbook defaults */
@@ -536,6 +541,14 @@ export const runBacktestFn = createServerFn({ method: "POST" })
       const allowlist = (data.allowlist?.length ? data.allowlist : [ticker]).map((t) =>
         t.toUpperCase(),
       );
+      const costs = {
+        halfSpreadBps: data.halfSpreadBps,
+        ahSpreadMult: 3,
+        makerFeeRate: data.makerFeeRate,
+        takerFeeRate: data.takerFeeRate,
+        makerRebateRate: data.makerRebateRate,
+        afterHours: data.afterHours,
+      };
       const config = data.usePlaybook && ticker === "AMD"
         ? {
             ...playbookPatch,
@@ -555,6 +568,7 @@ export const runBacktestFn = createServerFn({ method: "POST" })
             limitOffsetBps: data.limitOffsetBps,
             limitTimeoutBars: data.limitTimeoutBars,
             slippageBps: data.slippageBps,
+            costs,
           };
       const result = data.walkForward
         ? runWalkForwardBacktest({ symbol, candles, events, config, trainRatio: 0.7 })

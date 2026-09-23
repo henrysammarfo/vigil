@@ -7,6 +7,12 @@
 import { evaluateFennGates, fixedPaperQuantity } from "./fenn";
 import { scoreFromMove, stateFromScore } from "./signal";
 import { analysisCompleteForPaper, type EntryAnalysis } from "./trader-rubric";
+import {
+  BITGET_VIP0_FUTURES_COSTS,
+  computeRoundTripCosts,
+  effectiveHalfSpreadBps,
+  type TradingCostConfig,
+} from "./trading-costs";
 import { computeLinearPnl } from "../integrations/bitget-paper";
 import type { Candle } from "../integrations/bitget-candles";
 
@@ -36,8 +42,14 @@ export type BacktestTrade = {
   exitTs: number;
   exitPx: number;
   barsHeld: number;
+  /** Gross price PnL before fees/spread/rebates. */
+  grossPnl: number;
+  feesPaid: number;
+  rebatesEarned: number;
+  spreadCost: number;
+  /** Net realized after fees − rebates + spread. */
   realizedPnl: number;
-  /** PnL in units of initial risk (R-multiples). */
+  /** PnL in units of initial risk (R-multiples) using net PnL. */
   rMultiple: number;
   exitReason: "stop_loss" | "take_profit" | "hold_bars" | "invalidation" | "end_of_data";
   score: number;
@@ -71,6 +83,11 @@ export type BacktestMetrics = {
   grossProfit: number;
   grossLoss: number;
   totalPnl: number;
+  /** Sum of gross price PnL (pre-cost). */
+  grossPnlSum: number;
+  totalFees: number;
+  totalRebates: number;
+  totalSpreadCost: number;
   stopExits: number;
   tpExits: number;
   refusalCount: number;
@@ -103,6 +120,8 @@ export type BacktestConfig = {
   slippageBps: number;
   /** with_move = chase catalyst; fade_move = mean-revert the spike */
   directionMode: "with_move" | "fade_move";
+  /** Bitget fee/spread/rebate model (VIP0 defaults). */
+  costs: TradingCostConfig;
   seed: number;
 };
 
@@ -138,11 +157,16 @@ export const DEFAULT_BACKTEST_CONFIG: BacktestConfig = {
   limitTimeoutBars: 3,
   slippageBps: 8,
   directionMode: "with_move",
+  costs: { ...BITGET_VIP0_FUTURES_COSTS },
   seed: 42,
 };
 
 function mergeConfig(partial?: Partial<BacktestConfig>): BacktestConfig {
-  const cfg = { ...DEFAULT_BACKTEST_CONFIG, ...partial };
+  const cfg = {
+    ...DEFAULT_BACKTEST_CONFIG,
+    ...partial,
+    costs: { ...BITGET_VIP0_FUTURES_COSTS, ...partial?.costs },
+  };
   // Keep invalidationPct in sync when only one stop field is passed
   if (partial?.stopLossPct != null && partial.invalidationPct == null) {
     cfg.invalidationPct = partial.stopLossPct;
@@ -263,7 +287,7 @@ function buildAnalysis(input: {
       "Not revenge/FOMO — score gate + allowlist only",
       "Sunk-cost ignored — fixed size, pre-committed SL/TP",
     ],
-    sessionRisk: `Backtest ${input.entryType} entry · SL/TP with AH slippage bps · conservative stop-first on same-bar`,
+    sessionRisk: `Backtest ${input.entryType} entry · SL/TP · Bitget VIP0 fees + AH-widened spread · rebates if configured · stop-first same-bar`,
     sizeRule: "fixed paper size — never spray balance",
     metricLabel: "estimated",
   };
@@ -285,9 +309,17 @@ export function computeBacktestMetrics(
   let unfilledLimits = 0;
   const pnls = trades.map((t) => t.realizedPnl);
   const rs = trades.map((t) => t.rMultiple);
+  let grossPnlSum = 0;
+  let totalFees = 0;
+  let totalRebates = 0;
+  let totalSpreadCost = 0;
   for (const t of trades) {
     if (t.exitReason === "stop_loss" || t.exitReason === "invalidation") stopExits += 1;
     if (t.exitReason === "take_profit") tpExits += 1;
+    grossPnlSum += t.grossPnl;
+    totalFees += t.feesPaid;
+    totalRebates += t.rebatesEarned;
+    totalSpreadCost += t.spreadCost;
     const p = t.realizedPnl;
     if (Math.abs(p) < 1e-10) flats += 1;
     else if (p > 0) {
@@ -338,6 +370,10 @@ export function computeBacktestMetrics(
     grossProfit,
     grossLoss,
     totalPnl,
+    grossPnlSum,
+    totalFees,
+    totalRebates,
+    totalSpreadCost,
     stopExits,
     tpExits,
     refusalCount: refusals.length,
@@ -470,7 +506,7 @@ export function runBacktest(input: {
 
     const signalClose = candles[idx]!.close;
     let entryIdx = idx;
-    let entryPx: number;
+    let entryPx = 0;
     let entryType = config.entryType;
 
     if (config.entryType === "limit") {
@@ -544,8 +580,23 @@ export function runBacktest(input: {
       );
     }
 
-    const realizedPnl = computeLinearPnl({ side, entry: entryPx, exit: exitPx, qty });
-    const rMultiple = riskPx > 0 ? ((side === "buy" ? exitPx - entryPx : entryPx - exitPx) / riskPx) : 0;
+    const grossPnl = computeLinearPnl({ side, entry: entryPx, exit: exitPx, qty });
+    const exitKind =
+      exitReason === "take_profit"
+        ? ("take_profit" as const)
+        : exitReason === "stop_loss"
+          ? ("stop" as const)
+          : ("time_exit" as const);
+    const costs = computeRoundTripCosts({
+      entryPrice: entryPx,
+      exitPrice: exitPx,
+      qty,
+      entryKind: entryType,
+      exitKind,
+      costs: config.costs,
+    });
+    const realizedPnl = grossPnl - costs.totalCost;
+    const rMultiple = riskPx > 0 ? realizedPnl / (riskPx * qty) : 0;
 
     const trade: BacktestTrade = {
       id: `bt_${ev.id}`,
@@ -563,6 +614,10 @@ export function runBacktest(input: {
       exitTs: candles[exitIdx]!.ts,
       exitPx,
       barsHeld: exitIdx - entryIdx,
+      grossPnl,
+      feesPaid: costs.feesPaid,
+      rebatesEarned: costs.rebatesEarned,
+      spreadCost: costs.spreadCost,
       realizedPnl,
       rMultiple,
       exitReason,
@@ -599,7 +654,7 @@ export function runBacktest(input: {
     equityCurve,
     metrics,
     honesty:
-      "paper-only backtest · candles observed · market/limit + SL/TP R:R · PnL estimated with slippage · stop-first same-bar · FENN · not financial advice",
+      `paper-only backtest · candles observed · market/limit + SL/TP R:R · fees/spread/rebates estimated (VIP0 maker ${config.costs.makerFeeRate * 100}% / taker ${config.costs.takerFeeRate * 100}% · half-spread ${effectiveHalfSpreadBps(config.costs).toFixed(2)}bps) · stop-first same-bar · FENN · not financial advice`,
   };
 }
 
