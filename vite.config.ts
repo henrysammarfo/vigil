@@ -32,7 +32,8 @@ export default defineConfig({
       },
     }),
     nitro({
-      preset: "cloudflare-module",
+      // Lovable/CF Workers locally; Vercel when VERCEL=1 (platform injects this)
+      preset: process.env.VERCEL ? "vercel" : "cloudflare-module",
       cloudflare: {
         nodeCompat: true,
         deployConfig: true,
