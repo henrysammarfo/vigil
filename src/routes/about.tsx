@@ -1,4 +1,61 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/vigil/page-shell";
-export const Route=createFileRoute("/about")({head:()=>({meta:[{title:"About VIGIL — Built for the closed window"},{name:"description",content:"Why VIGIL watches tokenized US stocks after hours."},{property:"og:title",content:"About VIGIL"},{property:"og:description",content:"A different agent for a different market window."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:About});
-function About(){return <PageShell eyebrow="About / 03" title="Built for the" accent="closed window." intro="Most agents never stop watching. VIGIL is different: it activates when US regular trading closes, where news and tokenized markets keep moving out of sync."><section className="bg-surface py-24"><div className="mx-auto grid max-w-[1200px] gap-12 px-5 md:grid-cols-2 md:px-10"><div className="signal-grid min-h-96 border border-border p-8"><div className="flex h-full items-center justify-center"><div className="h-48 w-48 border-[18px] border-foreground p-8 [clip-path:polygon(50%_0,100%_50%,50%_100%,0_50%)]"><div className="h-full w-full bg-primary [clip-path:polygon(0_50%,35%_15%,55%_75%,100%_0,70%_100%,40%_45%)]"/></div></div></div><div className="flex flex-col justify-center"><p className="text-2xl font-bold uppercase leading-tight">Signal over noise.<br/>Evidence over instinct.<br/>Paper over promises.</p><p className="mt-8 leading-7 text-muted-foreground">Created by Henry Sam Marfo for Bitget AI Base Camp Season 2, VIGIL demonstrates an event-driven Agent Hub workflow with honest labeling, explainable decisions, and no live-money claims.</p><dl className="mt-10 grid grid-cols-2 gap-6 border-t border-border pt-8 text-sm"><div><dt className="text-muted-foreground">Track</dt><dd className="mt-2 font-bold uppercase">Agentic Trading</dd></div><div><dt className="text-muted-foreground">Institution</dt><dd className="mt-2 font-bold uppercase">ATU</dd></div></dl></div></div></section></PageShell>}
+export const Route = createFileRoute("/about")({
+  head: () => ({
+    meta: [
+      { title: "About VIGIL — Built for the closed window" },
+      { name: "description", content: "Why VIGIL watches tokenized US stocks after hours." },
+      { property: "og:title", content: "About VIGIL" },
+      { property: "og:description", content: "A different agent for a different market window." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: About,
+});
+function About() {
+  return (
+    <PageShell
+      eyebrow="About / 03"
+      title="Built for the"
+      accent="closed window."
+      intro="Most agents never stop watching. VIGIL is different: it activates when US regular trading closes, where news and tokenized markets keep moving out of sync."
+    >
+      <section className="bg-surface py-24">
+        <div className="mx-auto grid max-w-[1200px] gap-12 px-5 md:grid-cols-2 md:px-10">
+          <div className="signal-grid min-h-96 border border-border p-8">
+            <div className="flex h-full items-center justify-center">
+              <div className="h-48 w-48 border-[18px] border-foreground p-8 [clip-path:polygon(50%_0,100%_50%,50%_100%,0_50%)]">
+                <div className="h-full w-full bg-primary [clip-path:polygon(0_50%,35%_15%,55%_75%,100%_0,70%_100%,40%_45%)]" />
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col justify-center">
+            <p className="text-2xl font-bold uppercase leading-tight">
+              Signal over noise.
+              <br />
+              Evidence over instinct.
+              <br />
+              Paper over promises.
+            </p>
+            <p className="mt-8 leading-7 text-muted-foreground">
+              Created by Henry Sam Marfo for Bitget AI Base Camp Season 2 (submit by 27 Sep 2026
+              UTC+8), VIGIL demonstrates an event-driven Agent Hub paper workflow with honest
+              labeling, explainable decisions, and no live-money claims.
+            </p>
+            <dl className="mt-10 grid grid-cols-2 gap-6 border-t border-border pt-8 text-sm">
+              <div>
+                <dt className="text-muted-foreground">Track</dt>
+                <dd className="mt-2 font-bold uppercase">Agentic Trading</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Institution</dt>
+                <dd className="mt-2 font-bold uppercase">ATU</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </section>
+    </PageShell>
+  );
+}

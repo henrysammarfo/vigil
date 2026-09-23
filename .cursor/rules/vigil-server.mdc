@@ -1,0 +1,13 @@
+---
+description: VIGIL server and agent typing, validation, and fail-closed patterns
+globs: src/vigil/**/*.ts,src/api/**/*.ts,worker/**/*.ts
+alwaysApply: false
+---
+
+# VIGIL Server Patterns
+
+- Export Zod schemas next to handlers; validate all inputs.
+- Use typed errors (`VigilError`) with stable `code` strings.
+- Journal writes are append-only — never UPDATE sealed why-cards.
+- Paper executor must refuse when `BITGET_PAPER` is not true.
+- Prefer composition: ingest → signal → policy → execute → seal.

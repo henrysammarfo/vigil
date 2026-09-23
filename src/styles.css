@@ -174,5 +174,21 @@
 .hero-scrim { position:absolute; inset:0 auto 0 0; width:70%; background:linear-gradient(90deg,var(--background) 0%,var(--background) 55%,color-mix(in oklab,var(--background) 85%,transparent) 78%,transparent 100%); }
 .stair { padding-left:min(238px,28vw); }
 .signal-grid { background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg,var(--border) 1px,transparent 1px); background-size: 52px 52px; }
-@media (max-width:700px){ .hero-video{right:auto;left:-12%;width:119%;}.hero-scrim{display:none}.stair{padding-left:12vw;} }
+/* Hero always has atmosphere even if remote video is slow/blocked */
+.hero-fallback {
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse 70% 60% at 85% 35%, color-mix(in oklab, var(--primary) 28%, transparent), transparent 70%),
+    linear-gradient(135deg, var(--background) 0%, var(--surface) 45%, color-mix(in oklab, var(--ink) 8%, var(--background)) 100%);
+}
+@media (max-width:700px){
+  .hero-video{right:auto;left:-12%;width:119%; opacity:0.55;}
+  .hero-scrim{display:none}
+  .stair{padding-left:12vw;}
+  .hero-fallback{
+    background:
+      radial-gradient(ellipse 90% 55% at 50% 0%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 65%),
+      linear-gradient(180deg, var(--surface), var(--background));
+  }
+}
 @media (prefers-reduced-motion:reduce){ *,*::before,*::after{scroll-behavior:auto!important;transition-duration:0.01ms!important;animation-duration:0.01ms!important;} }
