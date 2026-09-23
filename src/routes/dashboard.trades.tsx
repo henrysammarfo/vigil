@@ -84,7 +84,7 @@ function Trades() {
   return (
     <DashboardShell
       title="Paper trades"
-      kicker="Agent Hub · paper · mark-to-exit"
+      kicker="Agent Hub · paper = live · $100 bankroll"
       actions={
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => void refreshMarks()}>
@@ -114,12 +114,18 @@ function Trades() {
       }
     >
       <div className="mb-5 flex items-center gap-3 border border-primary-edge bg-primary/10 p-4 text-xs">
-        <ShieldCheck className="text-primary" /> All orders shown are Bitget Demo / paper. Mark and
-        exit use Demo quotes. Not financial advice.
+        <ShieldCheck className="text-primary" /> Paper = live training. Serious bankroll is{" "}
+        <span className="font-bold">$100</span> only — ignore Demo deposit. Mark/exit use Demo
+        quotes. Not financial advice.
       </div>
 
       {scoreboard && (
-        <div className="mb-5 grid gap-3 sm:grid-cols-4">
+        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <ScoreTile
+            label="Bankroll"
+            value={`$${scoreboard.bankroll.equityUsd.toFixed(2)}`}
+            hint={`start $100 · ${scoreboard.bankroll.growthPct >= 0 ? "+" : ""}${scoreboard.bankroll.growthPct.toFixed(1)}%`}
+          />
           <ScoreTile label="Open" value={String(scoreboard.open)} />
           <ScoreTile label="Closed" value={String(scoreboard.closed)} />
           <ScoreTile

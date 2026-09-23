@@ -199,6 +199,8 @@ export function paperScoreboard(orders: EnrichedPaperOrder[]): {
   flats: number;
   realizedPnlSum: number;
   unrealizedPnlSum: number;
+  /** Serious paper capital — ignore Bitget Demo deposit. Grow this. */
+  bankroll: PaperBankroll;
 } {
   let open = 0;
   let closed = 0;
@@ -221,5 +223,48 @@ export function paperScoreboard(orders: EnrichedPaperOrder[]): {
       if (Number.isFinite(u)) unrealizedPnlSum += u;
     }
   }
-  return { open, closed, wins, losses, flats, realizedPnlSum, unrealizedPnlSum };
+  return {
+    open,
+    closed,
+    wins,
+    losses,
+    flats,
+    realizedPnlSum,
+    unrealizedPnlSum,
+    bankroll: computePaperBankroll({ realizedPnlSum, unrealizedPnlSum }),
+  };
+}
+
+/** Serious paper account: $100 only. Bitget Demo deposits are ignored. */
+export const PAPER_BANKROLL_START_USD = 100;
+
+export type PaperBankroll = {
+  startUsd: number;
+  realizedPnl: number;
+  unrealizedPnl: number;
+  equityUsd: number;
+  growthPct: number;
+  metricLabel: "estimated";
+  note: string;
+};
+
+export function computePaperBankroll(input: {
+  realizedPnlSum: number;
+  unrealizedPnlSum: number;
+  startUsd?: number;
+}): PaperBankroll {
+  const startUsd = input.startUsd ?? PAPER_BANKROLL_START_USD;
+  const realizedPnl = Number.isFinite(input.realizedPnlSum) ? input.realizedPnlSum : 0;
+  const unrealizedPnl = Number.isFinite(input.unrealizedPnlSum) ? input.unrealizedPnlSum : 0;
+  const equityUsd = startUsd + realizedPnl + unrealizedPnl;
+  const growthPct = startUsd > 0 ? ((equityUsd - startUsd) / startUsd) * 100 : 0;
+  return {
+    startUsd,
+    realizedPnl,
+    unrealizedPnl,
+    equityUsd,
+    growthPct,
+    metricLabel: "estimated",
+    note: "Serious paper capital = $100. Ignore Demo deposit / fat wallet. Grow this book.",
+  };
 }

@@ -24,6 +24,7 @@ function Overview() {
   const data = q.data?.ok ? q.data : null;
   const signals = data?.signals ?? [];
   const orders = data?.orders ?? [];
+  const scoreboard = data?.scoreboard ?? null;
   const top = signals[0];
   const window = data?.window;
 
@@ -32,7 +33,7 @@ function Overview() {
       title="Vigil overview"
       kicker={
         window
-          ? `${window.state} · ${new Date(window.nowUtc).toISOString().slice(11, 16)} UTC`
+          ? `${window.state} · ${new Date(window.nowUtc).toISOString().slice(11, 16)} UTC · $100 book`
           : "Loading…"
       }
       actions={
@@ -82,8 +83,12 @@ function Overview() {
         <Stat icon={Radio} value={String(signals.length).padStart(2, "0")} label="Signals stored" />
         <Stat
           icon={ShieldCheck}
-          value={String(orders.length).padStart(2, "0")}
-          label="Paper decisions"
+          value={
+            scoreboard
+              ? `$${scoreboard.bankroll.equityUsd.toFixed(0)}`
+              : String(orders.length).padStart(2, "0")
+          }
+          label={scoreboard ? "$100 book equity" : "Paper decisions"}
         />
         <Stat icon={Sparkles} value={String(top?.score ?? 0)} label="Top signal score" />
       </div>

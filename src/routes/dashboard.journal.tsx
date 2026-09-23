@@ -15,17 +15,30 @@ export const Route = createFileRoute("/dashboard/journal")({
   component: Why,
 });
 
+function asLines(v: unknown): string[] {
+  return Array.isArray(v) ? v.map(String).filter(Boolean) : [];
+}
+
 function Why() {
   const q = useDashboard();
   const cards = q.data?.ok ? q.data.whyCards : [];
+  const scoreboard = q.data?.ok ? q.data.scoreboard : null;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = cards.find((c) => c.id === selectedId) ?? cards[0] ?? null;
   const body = (selected?.body ?? {}) as Record<string, unknown>;
+  const analysis =
+    body.entryAnalysis && typeof body.entryAnalysis === "object"
+      ? (body.entryAnalysis as Record<string, unknown>)
+      : null;
 
   return (
     <DashboardShell
       title="Why-log"
-      kicker="Append-only decision journal"
+      kicker={
+        scoreboard
+          ? `Append-only journal · $100 book $${scoreboard.bankroll.equityUsd.toFixed(2)}`
+          : "Append-only decision journal"
+      }
       actions={
         <Button
           variant="outline"
@@ -78,7 +91,7 @@ function Why() {
           meta={selected?.contentHash.slice(0, 16)}
         >
           {selected ? (
-            <div className="space-y-4 text-sm leading-7">
+            <div className="space-y-5 text-sm leading-7">
               <p>
                 <span className="font-bold uppercase">Headline:</span> {String(body.headline ?? "")}
               </p>
@@ -86,6 +99,29 @@ function Why() {
                 <span className="font-bold uppercase">Rationale:</span>{" "}
                 {String(body.rationale ?? "")}
               </p>
+              {analysis && (
+                <div className="space-y-4 border-t border-border pt-4">
+                  <p>
+                    <span className="font-bold uppercase">Thesis:</span>{" "}
+                    {String(analysis.thesis ?? "—")}
+                  </p>
+                  <ListBlock title="Bull" items={asLines(analysis.bullCase)} />
+                  <ListBlock title="Bear" items={asLines(analysis.bearCase)} />
+                  <ListBlock title="Invalidation" items={asLines(analysis.invalidation)} />
+                  <ListBlock title="Bias checks" items={asLines(analysis.biasChecks)} />
+                  {analysis.sessionRisk ? (
+                    <p>
+                      <span className="font-bold uppercase">Session:</span>{" "}
+                      {String(analysis.sessionRisk)}
+                    </p>
+                  ) : null}
+                  {analysis.sizeRule ? (
+                    <p>
+                      <span className="font-bold uppercase">Size:</span> {String(analysis.sizeRule)}
+                    </p>
+                  ) : null}
+                </div>
+              )}
               <p>
                 <span className="font-bold uppercase">LLM:</span> {String(body.llmProvider)} /{" "}
                 {String(body.llmModel)}
@@ -95,7 +131,7 @@ function Why() {
                 {Array.isArray(body.gates) ? body.gates.join(" → ") : "—"}
               </p>
               <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                prev {selected.prevHash.slice(0, 16)}… · sealed append-only
+                prev {selected.prevHash.slice(0, 16)}… · sealed append-only · paper = live $100 book
               </p>
             </div>
           ) : (
@@ -104,5 +140,19 @@ function Why() {
         </Panel>
       </div>
     </DashboardShell>
+  );
+}
+
+function ListBlock({ title, items }: { title: string; items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <div>
+      <p className="font-bold uppercase">{title}</p>
+      <ul className="mt-1 list-disc space-y-1 pl-5 text-muted-foreground">
+        {items.map((line) => (
+          <li key={`${title}-${line.slice(0, 48)}`}>{line}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
