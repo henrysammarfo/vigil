@@ -10,7 +10,6 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../src/vigil/db/client";
 import { tenantSettings, tenants } from "../src/vigil/db/schema";
 import { GROWTH_ALLOWLIST, GROWTH_TARGET_USD } from "../src/vigil/agent/growth";
-import { runVigilPipeline } from "../src/vigil/agent/pipeline";
 import { listEnrichedPaperOrders, paperScoreboard } from "../src/vigil/agent/paper-ledger";
 
 function arg(name: string): string | null {
@@ -20,7 +19,10 @@ function arg(name: string): string | null {
 
 async function main() {
   const wantRun = process.argv.includes("--run");
-  const key = arg("tenant") || process.env["VIGIL_WORKER_TENANT_ID"] || process.env["VIGIL_DEFAULT_TENANT_SLUG"];
+  const key =
+    arg("tenant") ||
+    process.env["VIGIL_WORKER_TENANT_ID"] ||
+    process.env["VIGIL_DEFAULT_TENANT_SLUG"];
   if (!key) {
     console.error("Pass --tenant=<id|slug> or set VIGIL_WORKER_TENANT_ID / VIGIL_DEFAULT_TENANT_SLUG");
     process.exit(1);
@@ -91,6 +93,7 @@ async function main() {
   );
 
   if (wantRun) {
+    const { runVigilPipeline } = await import("../src/vigil/agent/pipeline");
     const result = await runVigilPipeline(tenantId);
     console.log(
       JSON.stringify(
