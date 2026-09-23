@@ -11,7 +11,9 @@ export type AmdStrategyId =
   | "amd_limit_pullback_rr2"
   | "amd_market_rr2"
   | "amd_fade_limit_rr2"
-  | "amd_limit_tight_rr25";
+  | "amd_limit_tight_rr25"
+  | "amd_limit_sl08_rr3"
+  | "amd_4h_limit_rr3";
 
 export type AmdPlaybookEntry = {
   id: AmdStrategyId;
@@ -23,16 +25,46 @@ export type AmdPlaybookEntry = {
   rank: number;
 };
 
+const VIP0_AMD_COSTS = {
+  ...BITGET_VIP0_FUTURES_COSTS,
+  halfSpreadBps: 0.35,
+  afterHours: true,
+  makerFeeRate: 0.0002,
+  takerFeeRate: 0.0006,
+  makerRebateRate: 0,
+} as const;
+
 /**
- * Ranked AMD strategies from Bitget 1H history labs.
- * Prefer limit pullback with 1.2% SL / 1:2 RR (best OOS E[R] in lab).
+ * Ranked AMD strategies from Bitget history labs (net of VIP0 fees + AH spread).
+ * Prefer configs where train AND test are positive (robust).
  */
 export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
   {
+    id: "amd_limit_sl08_rr3",
+    label: "AMD limit · SL 0.8% · RR 1:3",
+    thesis:
+      "Robust lab champion: limit pullback on named semi catalyst, tight 0.8% stop, 3R target — train&test both green after costs.",
+    config: {
+      allowlist: ["AMD"],
+      entryType: "limit",
+      limitOffsetBps: 12,
+      limitTimeoutBars: 3,
+      stopLossPct: 0.008,
+      riskReward: 3,
+      holdBars: 12,
+      minScore: 40,
+      directionMode: "with_move",
+      slippageBps: 8,
+      costs: { ...VIP0_AMD_COSTS },
+    },
+    labNotes:
+      "1H×480 WF · train≈+18.7 · OOS 8t 62.5% · net +33.8 · E[R]≈+0.91 · fees≈3.0 · spread≈0.30 (lab long 2026-09-23)",
+    rank: 1,
+  },
+  {
     id: "amd_limit_tight_rr25",
     label: "AMD limit · SL 1.0% · RR 1:2.5",
-    thesis:
-      "Best lab OOS: limit pullback on MI300/data-center catalyst, tight 1R stop, 2.5R target.",
+    thesis: "Prior 1H winner — still strong OOS after VIP0 costs; slightly wider stop.",
     config: {
       allowlist: ["AMD"],
       entryType: "limit",
@@ -44,19 +76,33 @@ export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
       minScore: 40,
       directionMode: "with_move",
       slippageBps: 8,
-      costs: {
-        ...BITGET_VIP0_FUTURES_COSTS,
-        /** Observed AMD RTH half-spread ~0.3 bps; AH×3 in engine */
-        halfSpreadBps: 0.35,
-        afterHours: true,
-        makerFeeRate: 0.0002,
-        takerFeeRate: 0.0006,
-        makerRebateRate: 0,
-      },
+      costs: { ...VIP0_AMD_COSTS },
     },
     labNotes:
-      "1H×480 WF OOS 8t · 62.5% WR · E[R]≈+0.77 · PF≈2.92 · train≈+33 · net of VIP0 fees+AH spread (lab 2026-09-23)",
-    rank: 1,
+      "1H×480 WF OOS 8t · 62.5% WR · net +32.1 · E[R]≈+0.69 · fees 3.02 (lab 2026-09-23)",
+    rank: 2,
+  },
+  {
+    id: "amd_4h_limit_rr3",
+    label: "AMD 4H limit · SL 1.2% · RR 1:3",
+    thesis:
+      "Swing TF: higher OOS PnL but train was red — treat as exploratory, require live confirmation.",
+    config: {
+      allowlist: ["AMD"],
+      entryType: "limit",
+      limitOffsetBps: 12,
+      limitTimeoutBars: 3,
+      stopLossPct: 0.012,
+      riskReward: 3,
+      holdBars: 18,
+      minScore: 40,
+      directionMode: "with_move",
+      slippageBps: 8,
+      costs: { ...VIP0_AMD_COSTS },
+    },
+    labNotes:
+      "4H×360 WF OOS 14t · net +96 · E[R]≈+1.10 · BUT train≈−37 — not robust yet",
+    rank: 3,
   },
   {
     id: "amd_limit_pullback_rr2",
@@ -74,14 +120,15 @@ export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
       minScore: 40,
       directionMode: "with_move",
       slippageBps: 8,
+      costs: { ...VIP0_AMD_COSTS },
     },
-    labNotes: "1H×480 WF OOS ~8t · 62.5% WR · E[R]≈+0.55 · PF≈2.4",
-    rank: 2,
+    labNotes: "1H×480 WF · solid baseline RR2 after costs",
+    rank: 4,
   },
   {
     id: "amd_market_rr2",
     label: "AMD market · SL 1.2% · RR 1:2",
-    thesis: "Immediate market entry on Watch+ AMD move with fixed R:R — accept AH slippage.",
+    thesis: "Immediate market entry on Watch+ AMD move with fixed R:R — pay taker+spread.",
     config: {
       allowlist: ["AMD"],
       entryType: "market",
@@ -91,9 +138,10 @@ export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
       minScore: 40,
       directionMode: "with_move",
       slippageBps: 8,
+      costs: { ...VIP0_AMD_COSTS },
     },
-    labNotes: "1H×480 WF OOS ~10t · 40% WR · E[R]≈+0.15 · PF≈1.3",
-    rank: 3,
+    labNotes: "Underperforms limit after taker+AH spread drag",
+    rank: 5,
   },
   {
     id: "amd_fade_limit_rr2",
@@ -108,9 +156,10 @@ export const AMD_PLAYBOOK: AmdPlaybookEntry[] = [
       holdBars: 10,
       minScore: 45,
       directionMode: "fade_move",
+      costs: { ...VIP0_AMD_COSTS },
     },
-    labNotes: "Lab: fade usually underperforms with_move on this AMD tape — keep as contingency",
-    rank: 4,
+    labNotes: "Lab: fade usually underperforms with_move on this AMD tape — contingency only",
+    rank: 6,
   },
 ];
 
@@ -120,19 +169,17 @@ export function bestAmdConfig(): Partial<BacktestConfig> {
 }
 
 export function amdPlaybookSummary(): string[] {
-  return AMD_PLAYBOOK.map(
-    (p) => `#${p.rank} ${p.id}: ${p.thesis} · ${p.labNotes}`,
-  );
+  return AMD_PLAYBOOK.map((p) => `#${p.rank} ${p.id}: ${p.thesis} · ${p.labNotes}`);
 }
 
 /** Memory seed lines for AMD (estimated from lab — cite in LLM priors). */
 export function amdMemorySeedLines(): string[] {
   return [
-    "memory[AMD]: best lab = limit pullback SL1.0% RR1:2.5 net of VIP0 fees+AH spread (OOS E[R]≈+0.77)",
+    "memory[AMD]: robust champ = limit SL0.8% RR1:3 · train&test>0 after VIP0 fees+AH spread (OOS E[R]≈+0.91)",
     "prior: Bitget VIP0 futures · maker 0.02% · taker 0.06% · limit/TP=maker · market/stop=taker",
     "prior: AMD observed half-spread ~0.3–0.6 bps RTH; AH model ×3 in backtest",
-    "prior: backtest_win AMD limit · MI300/data-center catalyst · TP@2.5R after costs [backtest]",
-    "prior: with_move >> fade_move on current AMD 1H tape [backtest]",
+    "prior: 4H limit RR3 prints big OOS but train red — do not promote without confirmation",
+    "prior: with_move >> fade_move on current AMD tape [backtest]",
     "prior: unfilled limits save taker+spread — discipline not a bug",
   ];
 }
