@@ -20,6 +20,7 @@ import { Route as JournalRouteImport } from './routes/journal'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as DashboardChatRouteImport } from './routes/dashboard.chat'
 import { Route as DashboardJournalRouteImport } from './routes/dashboard.journal'
 import { Route as DashboardReplayRouteImport } from './routes/dashboard.replay'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
@@ -82,6 +83,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardChatRoute = DashboardChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardJournalRoute = DashboardJournalRouteImport.update({
   id: '/journal',
   path: '/journal',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/journal': typeof JournalRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/dashboard/chat': typeof DashboardChatRoute
   '/dashboard/journal': typeof DashboardJournalRoute
   '/dashboard/replay': typeof DashboardReplayRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/journal': typeof JournalRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/dashboard/chat': typeof DashboardChatRoute
   '/dashboard/journal': typeof DashboardJournalRoute
   '/dashboard/replay': typeof DashboardReplayRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/journal': typeof JournalRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/dashboard/chat': typeof DashboardChatRoute
   '/dashboard/journal': typeof DashboardJournalRoute
   '/dashboard/replay': typeof DashboardReplayRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/privacy'
     | '/terms'
+    | '/dashboard/chat'
     | '/dashboard/journal'
     | '/dashboard/replay'
     | '/dashboard/settings'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/privacy'
     | '/terms'
+    | '/dashboard/chat'
     | '/dashboard/journal'
     | '/dashboard/replay'
     | '/dashboard/settings'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/privacy'
     | '/terms'
+    | '/dashboard/chat'
     | '/dashboard/journal'
     | '/dashboard/replay'
     | '/dashboard/settings'
@@ -321,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/chat': {
+      id: '/dashboard/chat'
+      path: '/chat'
+      fullPath: '/dashboard/chat'
+      preLoaderRoute: typeof DashboardChatRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/journal': {
       id: '/dashboard/journal'
       path: '/journal'
@@ -367,6 +386,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface DashboardRouteChildren {
+  DashboardChatRoute: typeof DashboardChatRoute
   DashboardJournalRoute: typeof DashboardJournalRoute
   DashboardReplayRoute: typeof DashboardReplayRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
@@ -377,6 +397,7 @@ interface DashboardRouteChildren {
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardChatRoute: DashboardChatRoute,
   DashboardJournalRoute: DashboardJournalRoute,
   DashboardReplayRoute: DashboardReplayRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,

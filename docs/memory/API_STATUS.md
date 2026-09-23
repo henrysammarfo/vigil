@@ -15,8 +15,9 @@
 | DashScope / Qwen | `DASHSCOPE_API_KEY` / `QWEN_API_KEY` | Optional | |
 | LLM relay | `VIGIL_LLM_RELAY_URL` | Optional | `worker/llm-relay.ts` |
 | Bitget Demo | `BITGET_*` + `BITGET_PAPER=true` | **OK** | Per-tenant vault preferred; env fallback with `VIGIL_ALLOW_ENV_BITGET=1` |
-| Database | `DATABASE_URL` | Required | Postgres / `pglite:memory` local |
+| Database | `DATABASE_URL` | **OK** — Neon `vigil-db` on Vercel | Postgres (Neon free) · schema auto-migrates |
 | Session | `SESSION_SECRET` | Required | ≥32 bytes |
+| Desk chat | `VIGIL_CHAT_DAILY_LIMIT` | **3 / tenant / UTC day** | Hard cap; max 20 |
 
 ## Paper growth ($100 → $5,000)
 

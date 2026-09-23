@@ -9,6 +9,7 @@ import {
   Gauge,
   LogOut,
   Menu,
+  MessageSquare,
   Play,
   Settings,
   ShieldCheck,
@@ -24,6 +25,7 @@ import { logoutFn } from "@/api/dashboard";
 
 const nav = [
   ["/dashboard", Gauge, "Overview"],
+  ["/dashboard/chat", MessageSquare, "Desk chat"],
   ["/dashboard/signals", Activity, "Signals"],
   ["/dashboard/trades", ShoppingCart, "Paper trades"],
   ["/dashboard/terminal", CandlestickChart, "Terminal"],

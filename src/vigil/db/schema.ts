@@ -303,3 +303,57 @@ export const contactMessages = pgTable("contact_messages", {
   message: text("message").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** ChatGPT-style threads — one conversation per row, scoped to tenant. */
+export const chatThreads = pgTable(
+  "chat_threads",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    title: text("title").notNull().default("New chat"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("chat_threads_tenant_updated_idx").on(t.tenantId, t.updatedAt)],
+);
+
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: text("id").primaryKey(),
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => chatThreads.id),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    role: text("role").notNull(),
+    content: text("content").notNull(),
+    replyToId: text("reply_to_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("chat_messages_thread_created_idx").on(t.threadId, t.createdAt),
+    index("chat_messages_tenant_created_idx").on(t.tenantId, t.createdAt),
+  ],
+);
+
+/** Durable per-tenant daily counters (chat quotas survive cold starts). */
+export const usageCounters = pgTable(
+  "usage_counters",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    bucket: text("bucket").notNull(),
+    dayKey: text("day_key").notNull(),
+    count: integer("count").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("usage_counters_tenant_bucket_day_uidx").on(t.tenantId, t.bucket, t.dayKey),
+  ],
+);

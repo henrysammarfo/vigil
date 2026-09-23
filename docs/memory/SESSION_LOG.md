@@ -1,3 +1,11 @@
+## 2026-09-23 — Desk chat + owner account + Neon
+
+- One agent per workspace (Run agent / worker). Desk chat is a capped assistant, not a second trader.
+- ChatGPT-style `/dashboard/chat`: threads, memory, reply-to, hard UTC daily cap (`VIGIL_CHAT_DAILY_LIMIT=3`).
+- Platform LLM/Bitget keys stay server-side; chat cannot place trades; Bitget vault encrypted per tenant.
+- Neon `vigil-db` connected on Vercel (`DATABASE_URL`). Owner `henrysammarfo@gmail.com` registered + growth allowlist NVDA/AMD/AAPL/TSLA.
+- Settings: Bitget Demo connect UI + agent params (allowlist, confidence, size, FENN).
+
 ## 2026-09-23 — Per-user tenancy (own Bitget Demo)
 
 - Signup already creates private tenant; Bitget keys were global env.

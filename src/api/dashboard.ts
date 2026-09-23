@@ -723,3 +723,102 @@ export const runBacktestFn = createServerFn({ method: "POST" })
       return toErrorPayload(error);
     }
   });
+
+/* ——— Desk chat (memory threads + hard daily caps) ——— */
+
+export const listChatThreadsFn = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const ctx = await requireSession(cookieHeader());
+    const { listThreads } = await import("../vigil/agent/chat");
+    const threads = await listThreads(ctx.tenantId);
+    return { ok: true as const, threads };
+  } catch (error) {
+    return toErrorPayload(error);
+  }
+});
+
+export const createChatThreadFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) =>
+    z
+      .object({
+        title: z.string().max(80).optional(),
+      })
+      .parse(data ?? {}),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await requireSession(cookieHeader());
+      if (!rateLimit(`chat-create:${ctx.tenantId}`, 20, 60_000)) {
+        return {
+          ok: false as const,
+          code: "RATE_LIMITED",
+          message: "Too many new chats — slow down",
+          status: 429,
+        };
+      }
+      const { createThread } = await import("../vigil/agent/chat");
+      const thread = await createThread(ctx.tenantId, data.title);
+      return { ok: true as const, thread };
+    } catch (error) {
+      return toErrorPayload(error);
+    }
+  });
+
+export const listChatMessagesFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) => z.object({ threadId: z.string().min(3).max(64) }).parse(data))
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await requireSession(cookieHeader());
+      const { getThreadMessages } = await import("../vigil/agent/chat");
+      const messages = await getThreadMessages(ctx.tenantId, data.threadId);
+      return { ok: true as const, messages };
+    } catch (error) {
+      return toErrorPayload(error);
+    }
+  });
+
+export const sendChatMessageFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) =>
+    z
+      .object({
+        threadId: z.string().min(3).max(64),
+        content: z.string().min(1).max(2000),
+        replyToId: z.string().min(3).max(64).nullable().optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await requireSession(cookieHeader());
+      if (!rateLimit(`chat-send:${ctx.tenantId}`, 10, 60_000)) {
+        return {
+          ok: false as const,
+          code: "RATE_LIMITED",
+          message: "Chat send rate limited",
+          status: 429,
+        };
+      }
+      const { sendChatMessage } = await import("../vigil/agent/chat");
+      const result = await sendChatMessage({
+        tenantId: ctx.tenantId,
+        userId: ctx.userId,
+        threadId: data.threadId,
+        content: data.content,
+        replyToId: data.replyToId ?? null,
+      });
+      return { ok: true as const, ...result };
+    } catch (error) {
+      return toErrorPayload(error);
+    }
+  });
+
+export const chatQuotaFn = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const ctx = await requireSession(cookieHeader());
+    const { chatQuota } = await import("../vigil/agent/chat");
+    const quota = await chatQuota(ctx.tenantId);
+    return { ok: true as const, quota };
+  } catch (error) {
+    return toErrorPayload(error);
+  }
+});
