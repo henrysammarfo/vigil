@@ -12,12 +12,20 @@ import { isVigilError } from "../security/errors";
 import { newId } from "../security/crypto";
 import { evaluateClosedWindow } from "./closed-window";
 import { evaluateFennGates, fixedPaperQuantity, parseAllowlist } from "./fenn";
+import {
+  computeGrowthSize,
+  GROWTH_ALLOWLIST,
+  GROWTH_TARGET_USD,
+  growthThesisBlock,
+  playbookStopForTicker,
+} from "./growth";
 import { sealWhyCard } from "./journal";
 import {
   buildMemoryDigest,
   parseMovePctNumber,
   recordLesson,
 } from "./memory";
+import { listEnrichedPaperOrders, paperScoreboard } from "./paper-ledger";
 import { assessRtokenSignal } from "./signal";
 import { analysisCompleteForPaper } from "./trader-rubric";
 
@@ -54,8 +62,21 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
   assertPaperOnlySettings(settings.paperOnly !== false);
 
   const fennMode = settings.fennMode !== false;
-  const allowlist = parseAllowlist(settings.allowlist ?? []);
-  const fixedSize = fixedPaperQuantity(settings.fixedPaperSize ?? 1);
+  // Growth mode: if allowlist empty and VIGIL_GROWTH_ALLOWLIST=1, seed high-WR pairs
+  let allowlist = parseAllowlist(settings.allowlist ?? []);
+  if (
+    allowlist.length === 0 &&
+    (process.env["VIGIL_GROWTH_ALLOWLIST"]?.trim() === "1" ||
+      process.env["VIGIL_GROWTH_ALLOWLIST"]?.trim()?.toLowerCase() === "true")
+  ) {
+    allowlist = [...GROWTH_ALLOWLIST];
+  }
+  const settingsFixed = fixedPaperQuantity(settings.fixedPaperSize ?? 1);
+
+  // Serious $100 book sizing from current equity
+  const openOrders = await listEnrichedPaperOrders(tenantId, 200);
+  const scoreboard = paperScoreboard(openOrders);
+  const bankroll = scoreboard.bankroll;
 
   const window = evaluateClosedWindow(new Date(), {
     weekendWatch: settings.weekendWatch,
@@ -394,14 +415,21 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
       ) {
         const side = action === "PAPER_BUY" ? "buy" : "sell";
         const symbol = `${assessment.ticker}USDT`;
-        // Fixed small size — never "use the rest of the balance"
+        const mark = await fetchBitgetMarkQuote(symbol);
+        const markPx = mark?.mark ?? 0;
+        const growth = computeGrowthSize({
+          equityUsd: bankroll.equityUsd,
+          markPrice: markPx > 0 ? markPx : 100,
+          stopLossPct: playbookStopForTicker(assessment.ticker),
+          maxPositionUsd: settings.maxPositionUsd ?? GROWTH_TARGET_USD,
+        });
+        const size = markPx > 0 ? growth.qty : settingsFixed;
         const order = await placeBitgetPaperOrder({
           tenantId,
           symbol,
           side,
-          size: fixedSize,
+          size,
         });
-        const mark = await fetchBitgetMarkQuote(symbol);
         const entryPx = mark ? mark.mark.toFixed(6) : null;
         paperOrderId = newId("ord");
         await db.insert(paperOrders).values({
@@ -410,16 +438,34 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
           decisionId,
           symbol,
           side,
-          quantity: fixedSize,
+          quantity: size,
           price: entryPx,
           status: order.status,
           exchangeOrderId: order.exchangeOrderId,
-          rawResponse: order.raw,
+          rawResponse: {
+            ...order.raw,
+            vigilGrowth: growth,
+          },
           metricLabel: order.metricLabel,
           lifecycle: "open",
           markPrice: entryPx,
           unrealizedPnl: "0",
-          entryAnalysis: entryAnalysis ?? undefined,
+          entryAnalysis: entryAnalysis
+            ? {
+                ...entryAnalysis,
+                sizeRule: growth.sizeRule,
+                biasChecks: [...(entryAnalysis.biasChecks ?? []), ...growthThesisBlock(growth)],
+              }
+            : {
+                thesis: "growth-sized paper",
+                bullCase: [],
+                bearCase: [],
+                invalidation: [],
+                biasChecks: growthThesisBlock(growth),
+                sessionRisk: "after_hours",
+                sizeRule: growth.sizeRule,
+                metricLabel: "estimated" as const,
+              },
         });
         papered += 1;
         paperedTickers.add(assessment.ticker.toUpperCase());
@@ -498,11 +544,27 @@ export async function runVigilPipeline(tenantId: string): Promise<PipelineResult
       newsCount: news.length,
       allowlist,
       fennMode,
-      fixedPaperSize: fixedSize,
+      fixedPaperSize: settingsFixed,
+      growth: {
+        startUsd: bankroll.startUsd,
+        equityUsd: bankroll.equityUsd,
+        targetUsd: GROWTH_TARGET_USD,
+        progressPct: Math.min(
+          100,
+          Math.max(
+            0,
+            ((bankroll.equityUsd - bankroll.startUsd) / (GROWTH_TARGET_USD - bankroll.startUsd)) *
+              100,
+          ),
+        ),
+        remainingUsd: Math.max(0, GROWTH_TARGET_USD - bankroll.equityUsd),
+      },
       window,
       artifacts,
-      honesty: "paper-only · fenn refuse-by-default · metrics labeled · not financial advice",
-      thesis: "Ten headlines, mostly NO cards, one named allowlisted paper when earned",
+      honesty:
+        "paper-only · $100→$5000 serious book · fenn refuse-by-default · metrics labeled · not financial advice",
+      thesis:
+        "High-WR playbook pairs · growth-sized paper · mostly NO cards · one named allowlisted fill when earned",
     };
     await finishRun(runId, "completed", summary);
     return { runId, status: "completed", windowState: window.state, summary };

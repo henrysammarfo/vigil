@@ -29,13 +29,14 @@ function Overview() {
   const window = data?.window;
   const bitget = data?.bitget;
   const tenant = data?.tenant;
+  const growth = data?.growth;
 
   return (
     <DashboardShell
       title="Vigil overview"
       kicker={
         window
-          ? `${tenant?.name ?? "Workspace"} · ${window.state} · $100 book`
+          ? `${tenant?.name ?? "Workspace"} · ${window.state} · $100→$5k book`
           : "Loading…"
       }
       actions={
@@ -99,6 +100,15 @@ function Overview() {
           before paper runs. Keys stay encrypted to this tenant only.
         </p>
       )}
+      {growth && (
+        <p className="mb-4 border border-border bg-surface px-4 py-3 text-sm text-foreground">
+          Serious book: <strong>${growth.equityUsd.toFixed(2)}</strong> / ${growth.targetUsd} target
+          · {growth.progressPct.toFixed(1)}% ·{" "}
+          {growth.reachedTarget
+            ? "target reached — protect capital"
+            : `$${growth.remainingUsd.toFixed(0)} to go · AgentRouter live · growth-sized paper`}
+        </p>
+      )}
       {runMsg && <p className="mb-4 text-xs text-muted-foreground">{runMsg}</p>}
       {!data && q.isLoading && (
         <p className="text-sm text-muted-foreground">Loading live tenant data…</p>
@@ -122,7 +132,7 @@ function Overview() {
               ? `$${scoreboard.bankroll.equityUsd.toFixed(0)}`
               : String(orders.length).padStart(2, "0")
           }
-          label={scoreboard ? "$100 book equity" : "Paper decisions"}
+          label={scoreboard ? "$100→$5k equity" : "Paper decisions"}
         />
         <Stat icon={Sparkles} value={String(top?.score ?? 0)} label="Top signal score" />
       </div>
