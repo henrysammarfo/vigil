@@ -1,20 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ReferenceDot,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { Play, RefreshCw } from "lucide-react";
 import { DashboardShell, Panel } from "@/components/vigil/dashboard-shell";
+import { VigilCandleChart, VigilEquityChart, type ChartMarker } from "@/components/vigil/trade-chart";
 import { Button } from "@/components/ui/button";
 import { runBacktestFn, memoryDigestFn, terminalSnapshotFn } from "@/api/dashboard";
 
@@ -24,7 +13,7 @@ export const Route = createFileRoute("/dashboard/terminal")({
       { title: "Trade Terminal — VIGIL" },
       {
         name: "description",
-        content: "Paper trade chart terminal with mark PnL and rigorous backtest.",
+        content: "TradingView candlestick terminal with paper markers and walk-forward backtest.",
       },
     ],
   }),
@@ -41,8 +30,8 @@ function fmt(n: number | null | undefined, d = 4): string {
 
 function Terminal() {
   const qc = useQueryClient();
-  const [symbol, setSymbol] = useState<(typeof SYMBOLS)[number]>("NVDAUSDT");
-  const [granularity, setGranularity] = useState<"15m" | "1H" | "4H">("15m");
+  const [symbol, setSymbol] = useState<(typeof SYMBOLS)[number]>("AMDUSDT");
+  const [granularity, setGranularity] = useState<"15m" | "1H" | "4H">("1H");
   const [btBusy, setBtBusy] = useState(false);
   const [btMsg, setBtMsg] = useState<string | null>(null);
   const [backtest, setBacktest] = useState<null | {
@@ -85,11 +74,18 @@ function Terminal() {
     queryKey: ["vigil", "terminal", symbol, granularity],
     queryFn: () =>
       terminalSnapshotFn({
-        data: { symbol, granularity, limit: 96 },
+        data: { symbol, granularity, limit: 180 },
       }) as Promise<
         | {
             ok: true;
-            candles: Array<{ ts: number; close: number; high: number; low: number; open: number }>;
+            candles: Array<{
+              ts: number;
+              close: number;
+              high: number;
+              low: number;
+              open: number;
+              volume?: number;
+            }>;
             quote: { mark: number; last: number } | null;
             orders: Array<{
               id: string;
@@ -156,51 +152,77 @@ function Terminal() {
     refetchInterval: 60_000,
   });
 
-  const priceSeries = useMemo(() => {
+  const candles = useMemo(() => {
     if (!snap.data || !snap.data.ok) return [];
     return snap.data.candles.map((c) => ({
       ts: c.ts,
-      t: new Date(c.ts).toISOString().slice(5, 16).replace("T", " "),
-      close: c.close,
+      open: c.open,
       high: c.high,
       low: c.low,
+      close: c.close,
+      volume: c.volume ?? 0,
     }));
   }, [snap.data]);
 
   const markers = useMemo(() => {
-    if (!snap.data || !snap.data.ok) return [] as Array<{
-      ts: number;
-      px: number;
-      kind: "entry" | "exit";
-      side: string;
-      id: string;
-    }>;
-    const out: Array<{ ts: number; px: number; kind: "entry" | "exit"; side: string; id: string }> =
-      [];
-    for (const o of snap.data.orders) {
-      const entryPx = Number(o.price);
-      const entryTs = new Date(o.createdAt).getTime();
-      if (entryPx > 0 && entryTs > 0) {
-        out.push({ ts: entryTs, px: entryPx, kind: "entry", side: o.side, id: o.id });
-      }
-      if (o.lifecycle === "closed" && o.exitPrice && o.closedAt) {
-        const exitPx = Number(o.exitPrice);
-        const exitTs = new Date(o.closedAt).getTime();
-        if (exitPx > 0) {
-          out.push({ ts: exitTs, px: exitPx, kind: "exit", side: o.side, id: `${o.id}-x` });
+    const out: ChartMarker[] = [];
+    if (snap.data?.ok) {
+      for (const o of snap.data.orders) {
+        const entryPx = Number(o.price);
+        const entryTs = new Date(o.createdAt).getTime();
+        if (entryPx > 0 && entryTs > 0) {
+          out.push({
+            ts: entryTs,
+            px: entryPx,
+            kind: "entry",
+            side: o.side,
+            id: o.id,
+            label: o.side === "buy" ? "BUY" : "SELL",
+          });
+        }
+        if (o.lifecycle === "closed" && o.exitPrice && o.closedAt) {
+          const exitPx = Number(o.exitPrice);
+          const exitTs = new Date(o.closedAt).getTime();
+          if (exitPx > 0) {
+            out.push({
+              ts: exitTs,
+              px: exitPx,
+              kind: "exit",
+              side: o.side,
+              id: `${o.id}-x`,
+              label: "EXIT",
+            });
+          }
         }
       }
     }
+    // Overlay latest backtest fills when viewing same symbol context
+    if (backtest?.trades?.length) {
+      for (const t of backtest.trades.slice(0, 24)) {
+        out.push({
+          ts: t.entryTs,
+          px: t.entryPx,
+          kind: "entry",
+          side: t.side,
+          id: `bt-${t.id}`,
+          label: `BT ${t.side === "buy" ? "B" : "S"}`,
+        });
+        out.push({
+          ts: t.exitTs,
+          px: t.exitPx,
+          kind: "exit",
+          side: t.side,
+          id: `bt-${t.id}-x`,
+          label: t.exitReason.slice(0, 8).toUpperCase(),
+        });
+      }
+    }
     return out;
-  }, [snap.data]);
+  }, [snap.data, backtest]);
 
   const btEquity = useMemo(() => {
     if (!backtest?.equityCurve?.length) return [];
-    return backtest.equityCurve.map((e) => ({
-      t: new Date(e.ts).toISOString().slice(5, 16).replace("T", " "),
-      equity: e.equity,
-      drawdown: e.drawdown,
-    }));
+    return backtest.equityCurve.map((e) => ({ ts: e.ts, equity: e.equity }));
   }, [backtest]);
 
   async function runBt() {
@@ -246,7 +268,9 @@ function Terminal() {
       setBacktest(res.result);
       const m = res.result.metrics;
       const learned =
-        "lessonsWritten" in res.result ? Number((res.result as { lessonsWritten?: number }).lessonsWritten ?? 0) : 0;
+        "lessonsWritten" in res.result
+          ? Number((res.result as { lessonsWritten?: number }).lessonsWritten ?? 0)
+          : 0;
       setBtMsg(
         `OOS ${m.trades} trades · W${m.wins}/L${m.losses} · PnL ${fmt(m.totalPnl)} · DD ${fmt(m.maxDrawdown)} · memory +${learned}`,
       );
@@ -263,7 +287,7 @@ function Terminal() {
   return (
     <DashboardShell
       title="Trade terminal"
-      kicker="Chart · orders · backtest"
+      kicker="TradingView candles · orders · backtest"
       actions={
         <div className="flex flex-wrap gap-2">
           <Button
@@ -287,7 +311,11 @@ function Terminal() {
             className={`border px-3 py-1.5 font-medium ${
               symbol === s ? "border-primary bg-primary/15 text-primary" : "border-border"
             }`}
-            onClick={() => setSymbol(s)}
+            onClick={() => {
+              setSymbol(s);
+              setBacktest(null);
+              setBtMsg(null);
+            }}
           >
             {s}
           </button>
@@ -323,47 +351,14 @@ function Terminal() {
       )}
 
       <div className="mb-5 grid gap-5 lg:grid-cols-5">
-        <Panel title={`${symbol} price`} meta={granularity} className="lg:col-span-3">
-          <div className="h-[320px] w-full">
-            {priceSeries.length ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={priceSeries} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="t" tick={{ fontSize: 10 }} minTickGap={40} />
-                  <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10 }} width={56} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--card)",
-                      border: "1px solid var(--border)",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="close"
-                    stroke="var(--primary)"
-                    dot={false}
-                    strokeWidth={1.75}
-                    name="close"
-                  />
-                  {markers.map((m) => {
-                    const nearest = priceSeries.reduce((best, p) =>
-                      Math.abs(p.ts - m.ts) < Math.abs(best.ts - m.ts) ? p : best,
-                    priceSeries[0]!,
-                    );
-                    return (
-                      <ReferenceDot
-                        key={m.id}
-                        x={nearest.t}
-                        y={m.px}
-                        r={5}
-                        fill={m.kind === "entry" ? "var(--primary)" : "var(--destructive)"}
-                        stroke="transparent"
-                      />
-                    );
-                  })}
-                </LineChart>
-              </ResponsiveContainer>
+        <Panel
+          title={`${symbol} · TradingView`}
+          meta={`${granularity} · ${candles.length} bars`}
+          className="lg:col-span-3"
+        >
+          <div className="w-full border border-border/60 bg-card">
+            {candles.length ? (
+              <VigilCandleChart candles={candles} markers={markers} height={400} />
             ) : (
               <p className="p-6 text-sm text-muted-foreground">
                 {snap.isLoading ? "Loading candles…" : "No candle data."}
@@ -371,12 +366,13 @@ function Terminal() {
             )}
           </div>
           <p className="mt-2 text-[10px] text-muted-foreground">
-            Green dots ≈ paper entries · red ≈ exits (Demo). Candles observed from Bitget public API.
+            Candlesticks + volume · scroll/zoom · teal arrows = entries · red = exits · BT = backtest
+            overlays. Observed Bitget public candles.
           </p>
         </Panel>
 
         <Panel title="Order blotter" meta={`${orders.length} · ${symbol}`} className="lg:col-span-2">
-          <div className="max-h-[340px] overflow-y-auto text-xs">
+          <div className="max-h-[420px] overflow-y-auto text-xs">
             <table className="w-full text-left">
               <thead className="sticky top-0 bg-card text-[10px] uppercase text-muted-foreground">
                 <tr>
@@ -416,17 +412,14 @@ function Terminal() {
         {btMsg && <p className="mb-3 text-xs text-muted-foreground">{btMsg}</p>}
         {!backtest ? (
           <p className="text-sm text-muted-foreground">
-            Run a rigorous walk-forward backtest on Bitget history: catalyst spikes → score gate →
-            fixed size → hold/invalidation exits with AH slippage. PnL labeled estimated.
+            Run walk-forward on Bitget history. Entries/exits overlay on the TradingView chart above.
+            PnL labeled estimated (fees + AH spread).
           </p>
         ) : (
           <>
             <div className="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
               <Tile label="Trades" value={String(backtest.metrics.trades)} />
-              <Tile
-                label="Win rate"
-                value={`${(backtest.metrics.winRate * 100).toFixed(0)}%`}
-              />
+              <Tile label="Win rate" value={`${(backtest.metrics.winRate * 100).toFixed(0)}%`} />
               <Tile label="Total PnL" value={fmt(backtest.metrics.totalPnl)} />
               <Tile label="Expectancy" value={fmt(backtest.metrics.expectancy)} />
               <Tile
@@ -442,31 +435,17 @@ function Terminal() {
             {backtest.walkForward && (
               <p className="mb-3 text-xs text-muted-foreground">
                 Train {backtest.walkForward.trainTrades} trades · PnL{" "}
-                {fmt(backtest.walkForward.train.totalPnl)} · Test{" "}
-                {backtest.walkForward.testTrades} · PnL {fmt(backtest.walkForward.test.totalPnl)} ·
-                test WR {(backtest.walkForward.test.winRate * 100).toFixed(0)}% · candles{" "}
+                {fmt(backtest.walkForward.train.totalPnl)} · Test {backtest.walkForward.testTrades} ·
+                PnL {fmt(backtest.walkForward.test.totalPnl)} · test WR{" "}
+                {(backtest.walkForward.test.winRate * 100).toFixed(0)}% · candles{" "}
                 {backtest.candleCount} · events {backtest.eventCount}
               </p>
             )}
-            <div className="mb-4 h-[200px] w-full">
+            <div className="mb-4 border border-border/60 bg-card">
               {btEquity.length ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={btEquity}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="t" tick={{ fontSize: 10 }} minTickGap={36} />
-                    <YAxis tick={{ fontSize: 10 }} width={48} />
-                    <Tooltip />
-                    <Area
-                      type="monotone"
-                      dataKey="equity"
-                      stroke="var(--primary)"
-                      fill="color-mix(in oklch, var(--primary) 20%, transparent)"
-                      name="equity"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <VigilEquityChart points={btEquity} height={220} />
               ) : (
-                <p className="text-sm text-muted-foreground">No equity points (zero fills).</p>
+                <p className="p-4 text-sm text-muted-foreground">No equity points (zero fills).</p>
               )}
             </div>
             <div className="overflow-x-auto">
@@ -531,47 +510,21 @@ function Terminal() {
               />
               <Tile
                 label="Guard"
-                value={mem.data.digest.guard.blockPaper ? "BLOCK" : "PASS"}
+                value={mem.data.digest.guard.blockPaper ? "BLOCK" : "CLEAR"}
               />
             </div>
             <p className="mb-3 text-xs text-muted-foreground">{mem.data.digest.guard.reason}</p>
-            <ul className="mb-4 space-y-1 font-mono text-[11px] text-muted-foreground">
-              {mem.data.digest.blockLines.map((l) => (
-                <li key={l}>{l}</li>
+            <ul className="max-h-40 space-y-1 overflow-y-auto text-xs text-muted-foreground">
+              {mem.data.lessons.slice(0, 8).map((l) => (
+                <li key={l.id}>
+                  <span className="font-medium text-foreground">{l.outcome}</span> · {l.summary}
+                </li>
               ))}
+              {!mem.data.lessons.length && <li>No lessons yet — run backtests / close paper.</li>}
             </ul>
-            <div className="max-h-[220px] overflow-y-auto text-xs">
-              <table className="w-full text-left">
-                <thead className="sticky top-0 bg-card text-[10px] uppercase text-muted-foreground">
-                  <tr>
-                    <th className="pb-2">Outcome</th>
-                    <th>Source</th>
-                    <th>PnL</th>
-                    <th>Summary</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mem.data.lessons.slice(0, 20).map((l) => (
-                    <tr key={l.id} className="border-t border-border/70">
-                      <td className="py-2">{l.outcome}</td>
-                      <td>{l.source}</td>
-                      <td className="font-mono">{fmt(l.realizedPnl)}</td>
-                      <td className="max-w-[320px] truncate">{l.summary}</td>
-                    </tr>
-                  ))}
-                  {!mem.data.lessons.length && (
-                    <tr>
-                      <td colSpan={4} className="py-6 text-muted-foreground">
-                        No lessons yet — run a backtest or close a Demo trade to teach memory.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">Sign in required for tenant memory.</p>
+          <p className="text-sm text-muted-foreground">Loading memory…</p>
         )}
       </Panel>
     </DashboardShell>
@@ -580,9 +533,9 @@ function Terminal() {
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-border bg-card/40 px-3 py-2.5">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-base font-semibold tabular-nums">{value}</p>
+    <div className="border border-border bg-card p-3">
+      <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <p className="mt-1 font-mono text-lg font-semibold">{value}</p>
     </div>
   );
 }
