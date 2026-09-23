@@ -62,10 +62,12 @@ function AuthPage() {
       <div className="w-full max-w-md border border-border bg-background p-8">
         <BrandMark />
         <h1 className="mt-8 text-3xl font-bold uppercase">
-          {mode === "login" ? "Sign in" : "Create workspace"}
+          {mode === "login" ? "Sign in" : "Create your workspace"}
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          httpOnly cookie sessions · multitenant · no localStorage auth · paper only
+          {mode === "register"
+            ? "Creates a private tenant for you alone — your allowlist, journal, $100 paper book, and Bitget Demo keys. Nobody shares your keys."
+            : "httpOnly cookie sessions · your private tenant · paper only"}
         </p>
         <form className="mt-8 space-y-4" onSubmit={onSubmit}>
           {mode === "register" && (
@@ -97,7 +99,7 @@ function AuthPage() {
           />
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button variant="signal" size="signal" type="submit" disabled={busy} className="w-full">
-            {busy ? "Working…" : mode === "login" ? "Enter dashboard" : "Create & enter"}
+            {busy ? "Working…" : mode === "login" ? "Enter my workspace" : "Create my workspace"}
           </Button>
         </form>
         <button

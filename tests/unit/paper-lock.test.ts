@@ -24,7 +24,12 @@ describe("paper lock", () => {
     process.env.BITGET_PASSPHRASE = "z";
     const { placeBitgetPaperOrder } = await import("../../src/vigil/integrations/bitget-paper");
     await expect(
-      placeBitgetPaperOrder({ symbol: "NVDAUSDT", side: "buy", size: "1" }),
+      placeBitgetPaperOrder({
+        tenantId: "ten_test",
+        symbol: "NVDAUSDT",
+        side: "buy",
+        size: "1",
+      }),
     ).rejects.toMatchObject({ code: "PAPER_LOCK_VIOLATION" });
     process.env.BITGET_PAPER = prev;
   });

@@ -121,6 +121,7 @@ export async function closeOpenPaperOrder(
   }
 
   const close = await closeBitgetPaperOrder({
+    tenantId,
     symbol: row.symbol,
     openSide: asSide(row.side),
     size: row.quantity,

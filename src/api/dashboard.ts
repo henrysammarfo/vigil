@@ -78,7 +78,18 @@ export const logoutFn = createServerFn({ method: "POST" }).handler(async () => {
 export const meFn = createServerFn({ method: "GET" }).handler(async () => {
   try {
     const ctx = await requireSession(cookieHeader());
-    return { ok: true as const, user: ctx };
+    const db = await getDb();
+    const ten = await db.select().from(tenants).where(eq(tenants.id, ctx.tenantId)).limit(1);
+    const { getBitgetCredStatus } = await import("../vigil/tenant/credentials");
+    const bitget = await getBitgetCredStatus(ctx.tenantId);
+    return {
+      ok: true as const,
+      user: ctx,
+      tenant: ten[0]
+        ? { id: ten[0].id, slug: ten[0].slug, name: ten[0].name }
+        : { id: ctx.tenantId, slug: null, name: "Workspace" },
+      bitget,
+    };
   } catch (error) {
     return toErrorPayload(error);
   }
@@ -88,6 +99,9 @@ export const dashboardOverviewFn = createServerFn({ method: "GET" }).handler(asy
   try {
     const ctx = await requireSession(cookieHeader());
     const db = await getDb();
+    const { getBitgetCredStatus } = await import("../vigil/tenant/credentials");
+    const bitget = await getBitgetCredStatus(ctx.tenantId);
+    const ten = await db.select().from(tenants).where(eq(tenants.id, ctx.tenantId)).limit(1);
     const signalRows = await db
       .select()
       .from(signals)
@@ -128,12 +142,55 @@ export const dashboardOverviewFn = createServerFn({ method: "GET" }).handler(asy
       whyCards: why,
       settings: settings[0] ?? null,
       scoreboard,
+      tenant: ten[0]
+        ? { id: ten[0].id, slug: ten[0].slug, name: ten[0].name }
+        : { id: ctx.tenantId, slug: null, name: "Workspace" },
+      bitget,
     };
   } catch (error) {
     return toErrorPayload(error);
   }
 });
 
+export const saveBitgetCredentialsFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) =>
+    z
+      .object({
+        apiKey: z.string().min(8).max(200),
+        apiSecret: z.string().min(8).max(200),
+        passphrase: z.string().min(1).max(200),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const ctx = await requireSession(cookieHeader());
+      if (!rateLimit(`bitget-save:${ctx.tenantId}`, 8, 60_000)) {
+        return {
+          ok: false as const,
+          code: "RATE_LIMITED",
+          message: "Credential save rate limited",
+          status: 429,
+        };
+      }
+      const { saveBitgetCredentials } = await import("../vigil/tenant/credentials");
+      const bitget = await saveBitgetCredentials(ctx.tenantId, data);
+      return { ok: true as const, bitget };
+    } catch (error) {
+      return toErrorPayload(error);
+    }
+  });
+
+export const clearBitgetCredentialsFn = createServerFn({ method: "POST" }).handler(async () => {
+  try {
+    const ctx = await requireSession(cookieHeader());
+    const { clearBitgetCredentials } = await import("../vigil/tenant/credentials");
+    const bitget = await clearBitgetCredentials(ctx.tenantId);
+    return { ok: true as const, bitget };
+  } catch (error) {
+    return toErrorPayload(error);
+  }
+});
 export const runAgentFn = createServerFn({ method: "POST" }).handler(async () => {
   try {
     const ctx = await requireSession(cookieHeader());
@@ -143,6 +200,17 @@ export const runAgentFn = createServerFn({ method: "POST" }).handler(async () =>
         code: "RATE_LIMITED",
         message: "Agent run rate limited",
         status: 429,
+      };
+    }
+    const { getBitgetCredStatus } = await import("../vigil/tenant/credentials");
+    const bitget = await getBitgetCredStatus(ctx.tenantId);
+    if (!bitget.configured) {
+      return {
+        ok: false as const,
+        code: "BITGET_PAPER_NOT_CONFIGURED",
+        message:
+          "Connect your own Bitget Demo API keys in Settings before running the agent. Each workspace uses its own Demo account.",
+        status: 503,
       };
     }
     const result = await runVigilPipeline(ctx.tenantId);

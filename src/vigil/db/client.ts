@@ -90,6 +90,16 @@ CREATE TABLE IF NOT EXISTS api_credential_refs (
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE(tenant_id, provider)
 );
+CREATE TABLE IF NOT EXISTS tenant_secrets (
+  id text PRIMARY KEY,
+  tenant_id text NOT NULL REFERENCES tenants(id),
+  provider text NOT NULL,
+  ciphertext text NOT NULL,
+  key_hint text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(tenant_id, provider)
+);
 CREATE TABLE IF NOT EXISTS events (
   id text PRIMARY KEY,
   tenant_id text NOT NULL REFERENCES tenants(id),

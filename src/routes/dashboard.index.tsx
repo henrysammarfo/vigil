@@ -27,26 +27,38 @@ function Overview() {
   const scoreboard = data?.scoreboard ?? null;
   const top = signals[0];
   const window = data?.window;
+  const bitget = data?.bitget;
+  const tenant = data?.tenant;
 
   return (
     <DashboardShell
       title="Vigil overview"
       kicker={
         window
-          ? `${window.state} · ${new Date(window.nowUtc).toISOString().slice(11, 16)} UTC · $100 book`
+          ? `${tenant?.name ?? "Workspace"} · ${window.state} · $100 book`
           : "Loading…"
       }
       actions={
         <Button
           variant={window && !window.allowed ? "outline" : "signal"}
           size="sm"
-          disabled={!window?.allowed || Boolean(runMsg?.startsWith("Running"))}
+          disabled={
+            !window?.allowed ||
+            Boolean(runMsg?.startsWith("Running")) ||
+            bitget?.configured === false
+          }
           title={
-            window && !window.allowed
-              ? `${window.reason} — Run agent only after hours / weekend`
-              : "Run closed-window agent cycle"
+            bitget && !bitget.configured
+              ? "Connect your Bitget Demo keys in Settings first"
+              : window && !window.allowed
+                ? `${window.reason} — Run agent only after hours / weekend`
+                : "Run closed-window agent cycle"
           }
           onClick={async () => {
+            if (bitget && !bitget.configured) {
+              setRunMsg("Connect your Bitget Demo keys in Settings first");
+              return;
+            }
             if (!window?.allowed) {
               setRunMsg(`Skipped: ${window?.reason ?? "closed window not active"}`);
               return;
@@ -78,6 +90,15 @@ function Overview() {
         </Button>
       }
     >
+      {bitget && !bitget.configured && (
+        <p className="mb-4 border border-border bg-surface px-4 py-3 text-sm text-foreground">
+          Your workspace is private — connect <strong>your</strong> Bitget Demo API keys in{" "}
+          <a className="underline" href="/dashboard/settings">
+            Settings
+          </a>{" "}
+          before paper runs. Keys stay encrypted to this tenant only.
+        </p>
+      )}
       {runMsg && <p className="mb-4 text-xs text-muted-foreground">{runMsg}</p>}
       {!data && q.isLoading && (
         <p className="text-sm text-muted-foreground">Loading live tenant data…</p>
