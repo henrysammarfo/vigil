@@ -477,11 +477,14 @@ export const runBacktestFn = createServerFn({ method: "POST" })
         riskReward: z.number().min(0.5).max(5).default(2),
         invalidationPct: z.number().min(0.005).max(0.1).default(0.012),
         entryType: z.enum(["market", "limit"]).default("market"),
+        directionMode: z.enum(["with_move", "fade_move"]).default("with_move"),
         limitOffsetBps: z.number().int().min(0).max(100).default(12),
         limitTimeoutBars: z.number().int().min(1).max(12).default(3),
         slippageBps: z.number().int().min(0).max(50).default(8),
         allowlist: z.array(z.string().min(1).max(16)).max(20).optional(),
         walkForward: z.boolean().default(true),
+        /** When true and symbol is AMDUSDT, apply ranked playbook defaults */
+        usePlaybook: z.boolean().default(false),
       })
       .parse(data),
   )
@@ -505,6 +508,11 @@ export const runBacktestFn = createServerFn({ method: "POST" })
 
       const symbol = data.symbol.toUpperCase();
       const ticker = symbol.replace(/USDT$/, "");
+      let playbookPatch: Record<string, unknown> = {};
+      if (data.usePlaybook && ticker === "AMD") {
+        const { bestAmdConfig } = await import("../vigil/agent/playbooks/amd");
+        playbookPatch = bestAmdConfig();
+      }
       const candles = await fetchBitgetHistoryCandles({
         symbol,
         granularity: data.granularity,
@@ -528,19 +536,26 @@ export const runBacktestFn = createServerFn({ method: "POST" })
       const allowlist = (data.allowlist?.length ? data.allowlist : [ticker]).map((t) =>
         t.toUpperCase(),
       );
-      const config = {
-        allowlist,
-        fennMode: true,
-        minScore: data.minScore,
-        holdBars: data.holdBars,
-        stopLossPct: data.stopLossPct,
-        riskReward: data.riskReward,
-        invalidationPct: data.invalidationPct,
-        entryType: data.entryType,
-        limitOffsetBps: data.limitOffsetBps,
-        limitTimeoutBars: data.limitTimeoutBars,
-        slippageBps: data.slippageBps,
-      };
+      const config = data.usePlaybook && ticker === "AMD"
+        ? {
+            ...playbookPatch,
+            allowlist,
+            fennMode: true as const,
+          }
+        : {
+            allowlist,
+            fennMode: true as const,
+            minScore: data.minScore,
+            holdBars: data.holdBars,
+            stopLossPct: data.stopLossPct,
+            riskReward: data.riskReward,
+            invalidationPct: data.invalidationPct,
+            entryType: data.entryType,
+            directionMode: data.directionMode,
+            limitOffsetBps: data.limitOffsetBps,
+            limitTimeoutBars: data.limitTimeoutBars,
+            slippageBps: data.slippageBps,
+          };
       const result = data.walkForward
         ? runWalkForwardBacktest({ symbol, candles, events, config, trainRatio: 0.7 })
         : runBacktest({ symbol, candles, events, config });

@@ -101,6 +101,8 @@ export type BacktestConfig = {
   limitTimeoutBars: number;
   /** Applied on market fills and on stop/TP slippage (estimated). */
   slippageBps: number;
+  /** with_move = chase catalyst; fade_move = mean-revert the spike */
+  directionMode: "with_move" | "fade_move";
   seed: number;
 };
 
@@ -135,6 +137,7 @@ export const DEFAULT_BACKTEST_CONFIG: BacktestConfig = {
   limitOffsetBps: 12,
   limitTimeoutBars: 3,
   slippageBps: 8,
+  directionMode: "with_move",
   seed: 42,
 };
 
@@ -419,7 +422,13 @@ export function runBacktest(input: {
       continue;
     }
 
-    const side: "buy" | "sell" = movePct >= 0 ? "buy" : "sell";
+    const chaseSide: "buy" | "sell" = movePct >= 0 ? "buy" : "sell";
+    const side: "buy" | "sell" =
+      config.directionMode === "fade_move"
+        ? chaseSide === "buy"
+          ? "sell"
+          : "buy"
+        : chaseSide;
     const sideGate = evaluateFennGates({
       fennMode: config.fennMode,
       allowlist: config.allowlist.map((t) => t.toUpperCase()),
@@ -634,6 +643,23 @@ export function runWalkForwardBacktest(input: {
 }
 
 /** Build synthetic catalyst events from candle spikes (deterministic). */
+function headlineForTicker(ticker: string, bullish: boolean): string {
+  const t = ticker.toUpperCase();
+  if (t === "AMD") {
+    return bullish
+      ? "AMD MI300 / data-center AI GPU upgrade sparks after-hours rally"
+      : "AMD guidance cut and semiconductor tariff risk spark after-hours selloff";
+  }
+  if (t === "NVDA") {
+    return bullish
+      ? "NVDA AI chip outlook upgrade sparks after-hours rally"
+      : "NVDA guidance cut and tariff risk spark after-hours selloff";
+  }
+  return bullish
+    ? `${t} AI chip outlook upgrade sparks after-hours rally`
+    : `${t} guidance cut and tariff risk spark after-hours selloff`;
+}
+
 export function synthesizeEventsFromCandles(input: {
   symbol: string;
   ticker: string;
@@ -655,9 +681,7 @@ export function synthesizeEventsFromCandles(input: {
       ts: input.candles[i]!.ts,
       symbol: input.symbol,
       ticker: input.ticker,
-      headline: bullish
-        ? `${input.ticker} AI chip outlook upgrade sparks after-hours rally`
-        : `${input.ticker} guidance cut and tariff risk spark after-hours selloff`,
+      headline: headlineForTicker(input.ticker, bullish),
       movePctHint: move,
     });
     i += lookback; // de-dupe clusters

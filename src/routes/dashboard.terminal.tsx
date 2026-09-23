@@ -217,8 +217,10 @@ function Terminal() {
           holdBars: 12,
           stopLossPct: 0.012,
           riskReward: 2,
-          entryType: "market",
+          entryType: symbol.startsWith("AMD") ? "limit" : "market",
+          directionMode: "with_move",
           walkForward: true,
+          usePlaybook: symbol.startsWith("AMD"),
           allowlist: [symbol.replace(/USDT$/, "")],
         },
       })) as

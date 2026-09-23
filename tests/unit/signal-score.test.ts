@@ -18,4 +18,10 @@ describe("signal scoring", () => {
     const score = scoreFromMove(0.2, "Markets calm ahead of open", 0.4);
     expect(stateFromScore(score)).toBe("Rejected");
   });
+
+  it("boosts AMD MI300 / semiconductor catalysts", () => {
+    const score = scoreFromMove(1.4, "AMD MI300 data-center AI GPU upgrade", 2.2);
+    expect(score).toBeGreaterThanOrEqual(40);
+    expect(stateFromScore(score)).not.toBe("Rejected");
+  });
 });

@@ -99,16 +99,23 @@ export function scoreFromMove(movePct: number, headline: string, rangePct = 0): 
   const magnitude = Math.min(100, Math.round(Math.abs(movePct) * 30));
   const rangeBoost = Math.min(20, Math.round(Math.abs(rangePct) * 4));
   const keywordBoost = CATALYST_RE.test(headline) ? 18 : 0;
-  const namedBoost = /\b(NVDA|TSLA|AAPL|MSFT|AMZN|META|GOOGL|Nvidia|Tesla|Apple)\b/i.test(
-    headline,
-  )
-    ? 8
-    : 0;
-  return Math.max(0, Math.min(100, magnitude + Math.max(rangeBoost, keywordBoost) + namedBoost));
+  const namedBoost = NAMED_TICKER_RE.test(headline) ? 8 : 0;
+  const semiBoost = SEMI_CATALYST_RE.test(headline) ? 6 : 0;
+  return Math.max(
+    0,
+    Math.min(100, magnitude + Math.max(rangeBoost, keywordBoost) + namedBoost + semiBoost),
+  );
 }
 
 const CATALYST_RE =
   /export|earnings|guidance|fed|rate|inflation|geopolitic|sanction|upgrade|downgrade|lawsuit|recall|chip|ai |gpu|autonom|delivery|revenue|beat|miss|outlook|buyback|split|sec |probe|ban|tariff|war|ceasefire|ipo|acquisition|merger/i;
+
+/** AMD / semiconductor-specific catalysts (data-center AI, foundry, MI-series). */
+const SEMI_CATALYST_RE =
+  /\b(mi300|mi350|instinct|epyc|ryzen|data.?center|semiconductor|foundry|tsmc|hbm|gpu|accelerator|ai.?chip|datacenter)\b/i;
+
+const NAMED_TICKER_RE =
+  /\b(NVDA|TSLA|AAPL|MSFT|AMZN|META|GOOGL|AMD|Nvidia|Tesla|Apple|Advanced Micro)\b/i;
 
 export function stateFromScore(score: number): SignalAssessment["state"] {
   if (score >= 80) return "Qualified";
@@ -123,6 +130,6 @@ function formatMove(movePct: number): string {
 }
 
 function inferTicker(headline: string): string | undefined {
-  const m = headline.toUpperCase().match(/\b(NVDA|TSLA|AAPL|MSFT|AMZN|META|GOOGL)\b/);
+  const m = headline.toUpperCase().match(/\b(NVDA|TSLA|AAPL|MSFT|AMZN|META|GOOGL|AMD)\b/);
   return m?.[1];
 }
