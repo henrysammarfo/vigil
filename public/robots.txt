@@ -1,8 +1,16 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /auth
+Disallow: /api
+
 User-agent: Googlebot
 Allow: /
+Disallow: /dashboard
 
 User-agent: Bingbot
 Allow: /
+Disallow: /dashboard
 
 User-agent: Twitterbot
 Allow: /
@@ -10,5 +18,4 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
-Allow: /
+Sitemap: https://vigil-one-wine.vercel.app/sitemap.xml

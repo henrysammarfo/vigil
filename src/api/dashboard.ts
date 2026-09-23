@@ -417,28 +417,48 @@ export const contactFn = createServerFn({ method: "POST" })
   .validator((data: unknown) =>
     z
       .object({
-        name: z.string().min(1).max(120),
+        name: z.string().min(2).max(120),
         email: z.string().email().max(320),
-        message: z.string().min(1).max(5000),
+        message: z.string().min(10).max(5000),
+        /** Honeypot — must be empty */
+        website: z.string().max(200).optional().default(""),
       })
       .parse(data),
   )
   .handler(async ({ data }) => {
     try {
-      if (!rateLimit(`contact:${data.email.toLowerCase()}`, 5, 60_000)) {
+      if (data.website && data.website.trim().length > 0) {
+        // Silent success for bots
+        return { ok: true as const };
+      }
+      const ipKey = `contact-ip:${data.email.toLowerCase().slice(0, 32)}`;
+      if (!rateLimit(`contact:${data.email.toLowerCase()}`, 5, 60_000) || !rateLimit(ipKey, 8, 60_000)) {
         return {
           ok: false as const,
           code: "RATE_LIMITED",
-          message: "Too many contact attempts",
+          message: "Too many contact attempts — try again shortly",
           status: 429,
+        };
+      }
+      // Basic content spam heuristics
+      const lower = data.message.toLowerCase();
+      const spamHits = ["crypto airdrop", "viagra", "casino bonus", "http://", "https://"].filter(
+        (s) => lower.includes(s),
+      );
+      if (spamHits.length >= 2) {
+        return {
+          ok: false as const,
+          code: "VALIDATION_ERROR",
+          message: "Message rejected by spam filter",
+          status: 400,
         };
       }
       const db = await getDb();
       await db.insert(contactMessages).values({
         id: newId("msg"),
-        name: data.name,
-        email: data.email.toLowerCase(),
-        message: data.message,
+        name: data.name.trim(),
+        email: data.email.toLowerCase().trim(),
+        message: data.message.trim(),
       });
       return { ok: true as const };
     } catch (error) {

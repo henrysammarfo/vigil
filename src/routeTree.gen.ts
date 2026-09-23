@@ -17,6 +17,8 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as JournalRouteImport } from './routes/journal'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardJournalRouteImport } from './routes/dashboard.journal'
 import { Route as DashboardReplayRouteImport } from './routes/dashboard.replay'
@@ -65,6 +67,16 @@ const JournalRoute = JournalRouteImport.update({
   path: '/journal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -110,6 +122,8 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteWithChildren
   '/how-it-works': typeof HowItWorksRoute
   '/journal': typeof JournalRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/dashboard/journal': typeof DashboardJournalRoute
   '/dashboard/replay': typeof DashboardReplayRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -126,6 +140,8 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/how-it-works': typeof HowItWorksRoute
   '/journal': typeof JournalRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/dashboard/journal': typeof DashboardJournalRoute
   '/dashboard/replay': typeof DashboardReplayRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -144,6 +160,8 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteWithChildren
   '/how-it-works': typeof HowItWorksRoute
   '/journal': typeof JournalRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/dashboard/journal': typeof DashboardJournalRoute
   '/dashboard/replay': typeof DashboardReplayRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -163,6 +181,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/how-it-works'
     | '/journal'
+    | '/privacy'
+    | '/terms'
     | '/dashboard/journal'
     | '/dashboard/replay'
     | '/dashboard/settings'
@@ -179,6 +199,8 @@ export interface FileRouteTypes {
     | '/contact'
     | '/how-it-works'
     | '/journal'
+    | '/privacy'
+    | '/terms'
     | '/dashboard/journal'
     | '/dashboard/replay'
     | '/dashboard/settings'
@@ -196,6 +218,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/how-it-works'
     | '/journal'
+    | '/privacy'
+    | '/terms'
     | '/dashboard/journal'
     | '/dashboard/replay'
     | '/dashboard/settings'
@@ -214,6 +238,8 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRouteWithChildren
   HowItWorksRoute: typeof HowItWorksRoute
   JournalRoute: typeof JournalRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -272,6 +298,20 @@ declare module '@tanstack/react-router' {
       path: '/journal'
       fullPath: '/journal'
       preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/': {
@@ -359,6 +399,8 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRouteWithChildren,
   HowItWorksRoute: HowItWorksRoute,
   JournalRoute: JournalRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

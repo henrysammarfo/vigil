@@ -11,23 +11,36 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportClientError } from "../lib/client-error-reporting";
+import { DEFAULT_DESCRIPTION, pageMeta, SITE_TAGLINE, siteUrl } from "../lib/site";
+import { AnalyticsBoot, CookieConsentBanner } from "../components/vigil/cookie-consent";
+import { BrandMark } from "../components/vigil/brand";
+import { Button } from "../components/ui/button";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
+    <div className="flex min-h-[100svh] flex-col bg-background">
+      <div className="px-5 pt-8 md:px-12">
+        <BrandMark />
+      </div>
+      <div className="flex flex-1 items-center justify-center px-5 py-16">
+        <div className="max-w-md text-center">
+          <p className="eyebrow text-muted-foreground">Error 404</p>
+          <h1 className="mt-4 text-5xl font-bold uppercase tracking-tight text-heading md:text-7xl">
+            Signal lost
+          </h1>
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">
+            That route isn’t on the map. Head home or create your private paper workspace.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Button variant="signal" size="signal" asChild>
+              <Link to="/auth" search={{ next: "/dashboard" }}>
+                Create workspace
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/">Go home</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -52,6 +65,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
+            type="button"
             onClick={() => {
               router.invalidate();
               reset();
@@ -77,28 +91,34 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "VIGIL — Closed-market intelligence" },
-      {
-        name: "description",
-        content: "Event-driven paper trading for tokenized US stocks after the closing bell.",
-      },
+      { name: "theme-color", content: "#15bcdf" },
       { name: "author", content: "Henry Sam Marfo" },
-      { property: "og:title", content: "VIGIL — Closed-market intelligence" },
-      { property: "og:description", content: "Watch the market while the market sleeps." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@henrysammarfo" },
+      ...pageMeta({
+        title: `VIGIL — ${SITE_TAGLINE}`,
+        description: DEFAULT_DESCRIPTION,
+        path: "/",
+      }),
     ],
     links: [
+      { rel: "stylesheet", href: appCss },
       {
-        rel: "stylesheet",
-        href: appCss,
+        rel: "preconnect",
+        href: "https://fonts.googleapis.com",
+      },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
       },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap",
       },
+      { rel: "icon", href: "/favicon.ico", sizes: "any" },
       { rel: "icon", href: "/vigil-mark.svg", type: "image/svg+xml" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "canonical", href: siteUrl() },
+      { rel: "sitemap", href: "/sitemap.xml", type: "application/xml" },
     ],
   }),
   shellComponent: RootShell,
@@ -115,6 +135,8 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <CookieConsentBanner />
+        <AnalyticsBoot />
         <Scripts />
       </body>
     </html>
