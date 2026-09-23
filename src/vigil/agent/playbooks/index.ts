@@ -147,7 +147,7 @@ export const HIGH_WR_PLAYBOOKS: Record<PairTicker, PairPlaybook> = {
       costs: { ...COSTS },
     },
     labNotes:
-      "1H×480 WF OOS 5t · 80% WR · net +11.4 · train +9.4 · robust (stable vs 720-bar fetch flake)",
+      "1H×480 WF OOS 5t · 80% WR · net +11.4 · train +9.4 · robust",
     oosWr: 80,
     oosTrades: 5,
     robust: true,
