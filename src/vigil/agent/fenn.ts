@@ -81,6 +81,9 @@ export function evaluateFennGates(input: {
 }
 
 export function fixedPaperQuantity(fixedPaperSize: number): string {
-  const n = Number.isFinite(fixedPaperSize) ? Math.floor(fixedPaperSize) : 1;
-  return String(Math.max(1, Math.min(n, 10)));
+  const n = Number.isFinite(fixedPaperSize) ? Number(fixedPaperSize) : 1;
+  const clamped = Math.max(0.01, Math.min(n, 10));
+  if (clamped >= 1) return clamped.toFixed(2).replace(/\.00$/, "");
+  if (clamped >= 0.1) return clamped.toFixed(3);
+  return clamped.toFixed(4);
 }

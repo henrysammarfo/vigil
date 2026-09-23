@@ -133,6 +133,15 @@ export const dashboardOverviewFn = createServerFn({ method: "GET" }).handler(asy
       afterHoursWatch: settings[0]?.afterHoursWatch ?? true,
     });
     const scoreboard = paperScoreboard(ordersFresh.length ? ordersFresh : orderRows);
+    const { GROWTH_TARGET_USD, growthProgress } = await import("../vigil/agent/growth");
+    const growth = scoreboard.bankroll
+      ? {
+          ...growthProgress(scoreboard.bankroll),
+          targetUsd: GROWTH_TARGET_USD,
+          startUsd: scoreboard.bankroll.startUsd,
+          equityUsd: scoreboard.bankroll.equityUsd,
+        }
+      : null;
     return {
       ok: true as const,
       window,
@@ -142,6 +151,7 @@ export const dashboardOverviewFn = createServerFn({ method: "GET" }).handler(asy
       whyCards: why,
       settings: settings[0] ?? null,
       scoreboard,
+      growth,
       tenant: ten[0]
         ? { id: ten[0].id, slug: ten[0].slug, name: ten[0].name }
         : { id: ctx.tenantId, slug: null, name: "Workspace" },
