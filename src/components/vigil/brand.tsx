@@ -74,7 +74,9 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
         asChild
         className="ml-auto hidden md:inline-flex"
       >
-        <Link to="/dashboard">Launch app</Link>
+        <Link to="/auth" search={{ next: "/dashboard" }}>
+          Create workspace
+        </Link>
       </Button>
       <Button
         variant="ink"
@@ -104,8 +106,13 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
                 {x.label}
               </Link>
             ))}
-            <Link to="/dashboard" className="font-bold uppercase text-primary">
-              Launch app
+            <Link
+              to="/auth"
+              search={{ next: "/dashboard" }}
+              onClick={() => setOpen(false)}
+              className="font-bold uppercase text-primary"
+            >
+              Create workspace
             </Link>
           </nav>
         </>

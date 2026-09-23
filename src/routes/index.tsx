@@ -2,25 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BellRing, Clock3, FileCheck2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandMark, SiteHeader } from "@/components/vigil/brand";
+import { SiteFooter } from "@/components/vigil/site-footer";
 import { useAutoplayVideo } from "@/components/vigil/use-autoplay-video";
+import { pageMeta } from "@/lib/site";
 
 export const Route = createFileRoute("/")({
   head: () => ({
-    meta: [
-      { title: "VIGIL — The market sleeps. We don't." },
-      {
-        name: "description",
-        content:
-          "Closed-market intelligence that turns after-hours news into explainable paper trades.",
-      },
-      { property: "og:title", content: "VIGIL — The market sleeps. We don't." },
-      {
-        property: "og:description",
-        content: "Closed-market intelligence for tokenized US stocks.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+    meta: pageMeta({
+      title: "VIGIL — The market sleeps. We don't.",
+      description:
+        "Closed-market intelligence that turns after-hours news into explainable Bitget Demo paper trades. Create your private workspace.",
+      path: "/",
+    }),
   }),
   component: Index,
 });
@@ -38,19 +31,20 @@ function Index() {
           muted
           loop
           playsInline
-          preload="auto"
-          aria-hidden="true"
+          preload="metadata"
+          poster="/og-vigil.png"
+          aria-label="Atmospheric closed-market background motion"
         >
           <source
             src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260823_050407_500d0339-ab28-41c1-9688-132a74a3b5aa.mp4"
             type="video/mp4"
           />
         </video>
-        <div className="hero-scrim" />
+        <div className="hero-scrim" aria-hidden="true" />
         <SiteHeader overlay />
         <div className="relative z-10 px-5 pb-12 pt-[46vh] md:pb-10 md:pl-[8vw] md:pt-[11vh]">
           <p className="mb-5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-            <span className="h-2 w-2 bg-primary" /> Closed-market intelligence
+            <span className="h-2 w-2 bg-primary" aria-hidden="true" /> Closed-market intelligence
           </p>
           <h1 className="max-w-[900px] text-[clamp(2.75rem,8vw,6.7rem)] font-bold uppercase leading-[0.88] text-heading">
             <span className="block">The market</span>
@@ -59,10 +53,13 @@ function Index() {
               We <span className="text-primary">don’t.</span>
             </span>
           </h1>
-          <div className="mt-10 md:ml-[min(238px,28vw)]">
+          <p className="mt-6 max-w-md text-sm leading-6 text-muted-foreground md:ml-[min(238px,28vw)] md:text-base">
+            Your private paper workspace. Connect your Bitget Demo keys. Grow the $100 book.
+          </p>
+          <div className="mt-8 md:ml-[min(238px,28vw)]">
             <Button variant="signal" size="signal" asChild>
-              <Link to="/dashboard">
-                Open the vigil <ArrowRight />
+              <Link to="/auth" search={{ next: "/dashboard" }}>
+                Create workspace <ArrowRight aria-hidden="true" />
               </Link>
             </Button>
           </div>
@@ -131,13 +128,16 @@ function Index() {
               text="Evidence and decision become an append-only why-card."
             />
           </div>
-          <Button variant="signal" size="signal" className="mt-12" asChild>
-            <Link to="/how-it-works">
-              Trace the system <ArrowRight />
-            </Link>
-          </Button>
+          <div className="mt-12">
+            <Button variant="signal" size="signal" asChild>
+              <Link to="/auth" search={{ next: "/dashboard" }}>
+                Create workspace <ArrowRight aria-hidden="true" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
+      <SiteFooter />
     </main>
   );
 }
@@ -164,7 +164,7 @@ function Step({
   return (
     <article className="min-h-64 bg-ink p-6">
       <div className="flex items-center justify-between">
-        <Icon className="text-primary" />
+        <Icon className="text-primary" aria-hidden="true" />
         <span className="text-xs text-ink-muted">{number}</span>
       </div>
       <h3 className="mt-20 text-xl font-bold uppercase">{title}</h3>
