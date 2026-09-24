@@ -1,3 +1,9 @@
+## 2026-09-24 — Finalize to main
+
+- Merged desk chat + bible Social pain + Neon/owner/Bitget vault to `main`.
+- Prod: https://vigil-one-wine.vercel.app · PR #3.
+- Remaining Henry: X post + Google Form. Remaining ops: Tor/relay for Desk LLM on Vercel.
+
 ## 2026-09-24 — VIGIL_BIBLE refresh (Henry upload)
 
 - Merged FINAL uniqueness + **Social pain** (weekend −20% gap ≠ fill; BELL search lines).
