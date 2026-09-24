@@ -5,7 +5,12 @@ import { useDashboard } from "@/components/vigil/dashboard-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { updateSettingsFn } from "@/api/dashboard";
+import {
+  clearBitgetCredentialsFn,
+  meFn,
+  saveBitgetCredentialsFn,
+  updateSettingsFn,
+} from "@/api/dashboard";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/dashboard/settings")({
@@ -33,6 +38,28 @@ function SettingsPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [hydratedKey, setHydratedKey] = useState<string | null>(null);
+  const [bitgetKey, setBitgetKey] = useState("");
+  const [bitgetSecret, setBitgetSecret] = useState("");
+  const [bitgetPass, setBitgetPass] = useState("");
+  const [bitgetMsg, setBitgetMsg] = useState<string | null>(null);
+  const [bitgetStatus, setBitgetStatus] = useState<{
+    configured: boolean;
+    keyHint: string | null;
+    source: string;
+  } | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const me = await meFn();
+      if (me.ok && me.bitget) {
+        setBitgetStatus({
+          configured: me.bitget.configured,
+          keyHint: me.bitget.keyHint,
+          source: me.bitget.source,
+        });
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (!settings) return;
@@ -188,6 +215,118 @@ function SettingsPage() {
           {msg && <p className="mt-3 text-xs text-muted-foreground">{msg}</p>}
         </Panel>
       </div>
+      <Panel title="Your Bitget Demo" className="mt-4" meta="Encrypted per workspace">
+        <p className="text-sm text-muted-foreground">
+          Connect <strong>your</strong> Demo API keys. Ciphertext only in the database — never sent
+          back to the browser. Platform LLM keys stay server-side and are rate-capped per person in
+          Desk chat.
+        </p>
+        {bitgetStatus?.configured ? (
+          <p className="mt-3 border border-border bg-muted/30 px-3 py-2 text-xs">
+            Connected · hint {bitgetStatus.keyHint ?? "••••"} · source {bitgetStatus.source}
+          </p>
+        ) : (
+          <p className="mt-3 border border-border px-3 py-2 text-xs text-muted-foreground">
+            Not connected — Run agent stays locked until you save Demo keys.
+          </p>
+        )}
+        <label className="mt-4 block text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+          API key
+        </label>
+        <Input
+          className="mt-2 rounded-none"
+          type="password"
+          autoComplete="off"
+          value={bitgetKey}
+          onChange={(e) => setBitgetKey(e.target.value)}
+          placeholder="Bitget Demo API key"
+        />
+        <label className="mt-4 block text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+          API secret
+        </label>
+        <Input
+          className="mt-2 rounded-none"
+          type="password"
+          autoComplete="off"
+          value={bitgetSecret}
+          onChange={(e) => setBitgetSecret(e.target.value)}
+          placeholder="Bitget Demo API secret"
+        />
+        <label className="mt-4 block text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+          Passphrase
+        </label>
+        <Input
+          className="mt-2 rounded-none"
+          type="password"
+          autoComplete="off"
+          value={bitgetPass}
+          onChange={(e) => setBitgetPass(e.target.value)}
+          placeholder="Bitget Demo passphrase"
+        />
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            variant="signal"
+            onClick={async () => {
+              setBitgetMsg(null);
+              const res = await saveBitgetCredentialsFn({
+                data: {
+                  apiKey: bitgetKey,
+                  apiSecret: bitgetSecret,
+                  passphrase: bitgetPass,
+                },
+              });
+              if (res.ok) {
+                setBitgetStatus({
+                  configured: res.bitget.configured,
+                  keyHint: res.bitget.keyHint,
+                  source: res.bitget.source,
+                });
+                setBitgetKey("");
+                setBitgetSecret("");
+                setBitgetPass("");
+                setBitgetMsg("Saved · encrypted to this workspace only");
+                await qc.invalidateQueries({ queryKey: ["vigil"] });
+              } else {
+                setBitgetMsg(`${res.code}: ${res.message}`);
+              }
+            }}
+          >
+            Save Demo keys
+          </Button>
+          {bitgetStatus?.configured && (
+            <Button
+              variant="outline"
+              onClick={async () => {
+                const res = await clearBitgetCredentialsFn();
+                if (res.ok) {
+                  setBitgetStatus({
+                    configured: false,
+                    keyHint: null,
+                    source: "none",
+                  });
+                  setBitgetMsg("Cleared");
+                  await qc.invalidateQueries({ queryKey: ["vigil"] });
+                } else {
+                  setBitgetMsg(`${res.code}: ${res.message}`);
+                }
+              }}
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+        {bitgetMsg && <p className="mt-3 text-xs text-muted-foreground">{bitgetMsg}</p>}
+      </Panel>
+
+      <Panel title="Single agent model" className="mt-4" meta="Not a swarm">
+        <p className="text-sm text-muted-foreground">
+          One pipeline per workspace:{" "}
+          <code className="text-foreground">Run agent</code> on Overview (after hours / weekend)
+          plus optional worker for that tenant. Desk chat is a separate capped assistant — it cannot
+          spawn extra trading agents or burn your Bitget keys.
+        </p>
+      </Panel>
+
       <Panel title="Promotion" className="mt-4" meta="S2">
         <p className="text-sm text-muted-foreground">
           X posts must include #BitgetHackathon and @Bitget_AI and quote the official Bitget_AI

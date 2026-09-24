@@ -1,9 +1,9 @@
-# VIGIL — Extreme Win Bible (MERGED · Bitget AI Base Camp S2)
+# VIGIL — Extreme Win Bible (FINAL · Bitget AI Base Camp S2)
 
-> **Status:** Merged 2026-09-22 from Henry upload + live handbook fact-check  
-> **Submit:** ≤ **27 Sep 2026 23:59 UTC+8** (upload still said 21 Sep — **wrong**; handbook wins)  
+> **Status:** FINAL uniqueness **2026-09-12** · Henry refresh **2026-09-24** (Social pain) · [`UNIQUENESS_RELOCK_ALL_2026-09-12.md`](research-raw/hackathons/UNIQUENESS_RELOCK_ALL_2026-09-12.md)  
+> **Submit:** ≤ **27 Sep 2026 23:59 UTC+8** (upload draft said 21 Sep — **wrong**; live handbook wins)  
 > **Handbook:** https://bitget-ai.gitbook.io/bitgetai_hackathons2/  
-> **Track:** Agentic Trading · **Sub-theme:** Event-Driven Agent · paper on Agent Hub  
+> **Track:** Agentic Trading · Event-Driven Agent · paper on Agent Hub  
 > **≠** AXIS · SLATE · RONIN · generic “AI trades NVDA”
 
 ---
@@ -31,7 +31,7 @@ Research queues. The allowlist starts empty. A headline is not a fill.
 | RIDGE | 1073.07 | +73.07 |
 | SCOUT | halted mid-window | not the story |
 
-Source (Henry-claimed; verify before pitch slides): `docs/memory/FINAL_RESULTS.md` · `agent/profiles/fenn/README.md` — **files not yet in this repo**; do not invent if missing at submit time.
+Source: `docs/memory/FINAL_RESULTS.md` · `agent/profiles/fenn/README.md` — cite only if files exist at pitch time.
 
 ## FENN → VIGIL (keep / drop)
 
@@ -46,11 +46,17 @@ Source (Henry-claimed; verify before pitch slides): `docs/memory/FINAL_RESULTS.m
 
 ## 8-second
 
-Ten after-hours headlines. Nine cards say no, with the reason. One named rToken is on the allowlist → paper order → why-card.
+Ten after-hours headlines. Nine cards say no. The one paper is a named rToken on the allowlist, and the gap versus Thursday’s close is not the reason.
+
+## Social pain (2026-09-24)
+
+VIGIL’s own search was mostly noise. The on-topic lines came from the BELL search: a weekend print of −20% on a tokenized stock should not decide the trade (@0x_Gundsy), and a pool looks fine until the cash market closes (@TradeTheCrowd).
+
+VIGIL papers nothing when the only “signal” is that gap. The allowlist and the nine refusals stay. A headline still does not fill.
 
 ## Pitch order
 
-1. Closed-window thesis · 2. Agent Hub paper · 3. Explainability · 4. Metrics labeled · 5. X #BitgetHackathon
+1. Closed-window thesis · 2. Agent Hub paper · 3. Explainability · 4. Metrics labeled · 5. X #BitgetHackathon  
 
 ## Architecture
 
@@ -69,7 +75,7 @@ Agent Hub MCP/CLI · paper account · closed-window clock · append-only journal
 
 ## Honesty
 
-Paper only · no advice · never invent Bitget UID · metrics observed/estimated labeled · not unhackable.
+Paper only · no advice · never invent Bitget UID · metrics observed/estimated labeled.
 
 ## Identity
 
@@ -81,5 +87,6 @@ Henry Sam Marfo · @henrysammarfo · github.com/henrysammarfo
 | --- | --- | --- |
 | Deadline | 21 Sep 2026 | **27 Sep 2026 UTC+8** |
 | Sub-theme | Event-Driven | **Event-Driven Agent** |
-| Soft / gate | FENN allowlist (keep) | Merged into this file |
+| Soft / gate | FENN allowlist (keep) | Merged |
+| Social pain | Added 2026-09-24 | Gap ≠ fill; allowlist + nine nos |
 | FENN equity table | Cited | Keep only if source files exist at pitch |

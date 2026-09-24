@@ -213,6 +213,34 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   message text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS chat_threads (
+  id text PRIMARY KEY,
+  tenant_id text NOT NULL REFERENCES tenants(id),
+  title text NOT NULL DEFAULT 'New chat',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id text PRIMARY KEY,
+  thread_id text NOT NULL REFERENCES chat_threads(id),
+  tenant_id text NOT NULL REFERENCES tenants(id),
+  role text NOT NULL,
+  content text NOT NULL,
+  reply_to_id text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS usage_counters (
+  id text PRIMARY KEY,
+  tenant_id text NOT NULL REFERENCES tenants(id),
+  bucket text NOT NULL,
+  day_key text NOT NULL,
+  count integer NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(tenant_id, bucket, day_key)
+);
+CREATE INDEX IF NOT EXISTS chat_threads_tenant_updated_idx ON chat_threads(tenant_id, updated_at);
+CREATE INDEX IF NOT EXISTS chat_messages_thread_created_idx ON chat_messages(thread_id, created_at);
+CREATE INDEX IF NOT EXISTS chat_messages_tenant_created_idx ON chat_messages(tenant_id, created_at);
 `;
 
 async function ensureSchema(db: VigilDb): Promise<void> {
