@@ -1,3 +1,8 @@
+## 2026-09-24 — VIGIL_BIBLE refresh (Henry upload)
+
+- Merged FINAL uniqueness + **Social pain** (weekend −20% gap ≠ fill; BELL search lines).
+- Deadline stays **27 Sep 2026 UTC+8** (handbook); upload still said 21 Sep.
+
 ## 2026-09-23 — Desk chat + owner account + Neon
 
 - One agent per workspace (Run agent / worker). Desk chat is a capped assistant, not a second trader.
