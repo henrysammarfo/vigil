@@ -1,3 +1,9 @@
+## 2026-10-03 — A–Z health check landed
+
+- Added `docs/memory/HEALTH_A2Z.md` + `scripts/a2z-smoke.ts` (`bun run smoke:a2z`).
+- Live product path was **32/32 PASS** on https://vigil-one-wine.vercel.app (`main` @ `63c9418`).
+- Gaps remain ops-only: LLM declared in Settings, `VIGIL_LLM_RELAY_URL` for Desk on Vercel, Henry X/form.
+
 ## 2026-09-24 — Finalize to main
 
 - Merged desk chat + bible Social pain + Neon/owner/Bitget vault to `main`.
