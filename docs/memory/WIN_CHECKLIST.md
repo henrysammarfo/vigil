@@ -2,16 +2,18 @@
 
 ## Submission blockers (Henry / form)
 
-- [ ] Google Form project description (6 parts) — draft in `docs/submission/S2_SUBMISSION.md`
-- [ ] Role of the LLM field — draft ready; declare models actually used at submit time
-- [ ] Submission materials link (Demo + GitHub + paper log)
-- [ ] X post with `#BitgetHackathon` + `@Bitget_AI` + quote of official Bitget_AI status
-- [ ] Track = Agentic Trading · Sub-theme = Event-Driven Agent — drafted
-- [ ] University Name = ATU (if entering university pool) — drafted
-- [ ] Apply for Demo Day = Yes (recommended) — drafted
+- [x] Google Form project description (6 parts) — draft in `docs/submission/STAMPIT_PACK.md`
+- [x] Role of the LLM field — draft ready; declare models actually used at submit time
+- [x] Submission materials link (Demo + GitHub + paper log + demo MP4)
+- [ ] X post with `#BitgetHackathon` + `@Bitget_AI` + quote of official Bitget_AI status — draft in `docs/submission/X_POST.md`
+- [x] Track = Agentic Trading · Sub-theme = Event-Driven Agent — drafted
+- [x] University Name = ATU (if entering university pool) — drafted
+- [x] Apply for Demo Day = Yes (recommended) — drafted
 - [x] Paper trading log covering competition period — live Demo fill + export  
       → artifact `vigil-paper-log-1790078990545.json` · orderId `1486264474501758976`  
       → steps: [`docs/memory/BITGET_DEMO_STEPS.md`](./BITGET_DEMO_STEPS.md)
+- [x] Demo video packaged — `docs/submission/artifacts/vigil-s2-demo.mp4` + script
+- [x] Full product QA — `docs/submission/QA_REPORT.md` (**56/56 PASS** on 2026-10-06)
 
 ## Product blockers
 
