@@ -1,0 +1,31 @@
+{
+  "base": "https://vigil-one-wine.vercel.app",
+  "beats": [
+    {
+      "id": "01-hook",
+      "atMs": 3062,
+      "note": "landing"
+    },
+    {
+      "id": "02-problem",
+      "atMs": 17685,
+      "note": "how-it-works"
+    },
+    {
+      "id": "03-product",
+      "atMs": 30384,
+      "note": "brand + journal"
+    },
+    {
+      "id": "04-live",
+      "atMs": 39710,
+      "note": "register + dashboard tour"
+    },
+    {
+      "id": "05-close",
+      "atMs": 80745,
+      "note": "settings + end"
+    }
+  ],
+  "t0": 1791324349901
+}

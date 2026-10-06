@@ -88,11 +88,12 @@ US cash equities sleep on nights/weekends. Bitget keeps **tokenized / Demo US-st
 - [ ] Link demo + GitHub
 
 ## Materials link bundle
-- Demo: _(Cloudflare / Vercel production URL)_
+- Demo: https://vigil-one-wine.vercel.app
 - GitHub: https://github.com/henrysammarfo/vigil
-- PR: https://github.com/henrysammarfo/vigil/pull/1
+- Demo video: `docs/submission/artifacts/vigil-s2-demo.mp4`
+- Stampit pack: `docs/submission/STAMPIT_PACK.md`
+- QA: `docs/submission/QA_REPORT.md` (56/56 PASS · 2026-10-06)
 - Paper log: Dashboard → Paper trades → Export · artifacts `vigil-paper-log-*.json`
-- JEV research: `docs/memory/research-raw/JEV_2026-09-22.md`
 - Docs: `docs/memory/VIGIL_BIBLE.md`
 
 ## Deadline

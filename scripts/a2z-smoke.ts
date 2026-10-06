@@ -194,7 +194,10 @@ async function main() {
   if (!EMAIL || !PASS) {
     fail("owner-login", "VIGIL_OWNER_EMAIL / VIGIL_OWNER_PASSWORD not set — auth path skipped");
   } else {
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({
+      headless: true,
+      channel: process.env.VIGIL_BROWSER_CHANNEL?.trim() || "chrome",
+    });
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     page.on("dialog", (d) => d.accept().catch(() => undefined));
     try {

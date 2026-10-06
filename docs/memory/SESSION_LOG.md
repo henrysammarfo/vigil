@@ -1,3 +1,11 @@
+## 2026-10-06 — Stampit submit pack + demo pipeline
+
+- Built judge pack: `docs/submission/STAMPIT_PACK.md`, `DEMO_SCRIPT.md`, `X_POST.md`, `README.md`.
+- QA: `bun run submit:qa` → **56/56 PASS** (`docs/submission/QA_REPORT.md`).
+- Demo: Playwright computer-use recorder + Edge neural VO + ffmpeg → `docs/submission/artifacts/vigil-s2-demo.mp4` (~69s, 1080p).
+- Story: closed-window → FENN refuse → one Demo paper → why-log. Paper only.
+- Henry still needs: post X draft + paste form if Stampit still open (deadline was 27 Sep; judge window ~07 Oct).
+
 ## 2026-10-03 — A–Z health check landed
 
 - Added `docs/memory/HEALTH_A2Z.md` + `scripts/a2z-smoke.ts` (`bun run smoke:a2z`).

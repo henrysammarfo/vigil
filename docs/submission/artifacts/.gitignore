@@ -1,0 +1,6 @@
+# Keep final demo + reports; drop intermediate capture noise
+docs/submission/artifacts/raw-video/
+docs/submission/artifacts/_vo_parts/
+docs/submission/artifacts/qa/
+docs/submission/artifacts/vigil-s2-demo-raw.webm
+docs/submission/artifacts/vigil-s2-vo.wav
